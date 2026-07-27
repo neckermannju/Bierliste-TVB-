@@ -224,11 +224,8 @@
             font-size: 12px;
             cursor: pointer;
         }
-        .admin-only {
-            display: none !important;
-        }
-        body.is-admin .admin-only {
-            display: flex !important;
+        .admin-only-block {
+            display: none;
         }
         body.is-admin .admin-only-block {
             display: block !important;
@@ -262,7 +259,7 @@
     </div>
 
     <!-- Drink Definition Form (Nur Admin) -->
-    <div class="card admin-only-block" style="display: none;">
+    <div class="card admin-only-block">
         <div class="card-title">⚙️ Getränke & Preise (Admin)</div>
         <div class="form-row">
             <input type="text" id="drinkNameInput" placeholder="Getränk (z.B. Cola)">
@@ -273,10 +270,10 @@
     </div>
 
     <!-- Add Person Form (Nur Admin) -->
-    <div class="card admin-only-block" style="display: none;">
+    <div class="card admin-only-block">
         <div class="card-title">👤 Person hinzufügen (Admin)</div>
         <div class="form-row">
-            <input type="text" id="personNameInput" placeholder="Name der Person...">
+            <input type="text" id="personNameInput" placeholder="Vor- und Nachname...">
             <button class="primary-btn" onclick="addPerson()">Hinzufügen</button>
         </div>
     </div>
@@ -286,7 +283,7 @@
 </div>
 
 <script>
-    // STANDARD ADMIN PASSWORT (Kannst du hier ändern!)
+    // STANDARD ADMIN PASSWORT
     var ADMIN_PASSWORD = "1902";
     var isAdmin = false;
 
@@ -297,7 +294,8 @@
     ];
 
     var people = [
-        { id: 'p1', name: 'Max', drinks: {} }
+        { id: 'p1', name: 'Max Mustermann', drinks: {} },
+        { id: 'p2', name: 'Erika Berger', drinks: {} }
     ];
 
     try {
@@ -312,6 +310,21 @@
             localStorage.setItem('bierStrichliste_drinks', JSON.stringify(drinkTypes));
             localStorage.setItem('bierStrichliste_people', JSON.stringify(people));
         } catch(e) {}
+    }
+
+    // Hilfsfunktion: Extrahiert den Nachnamen für die Sortierung
+    function getLastName(fullName) {
+        var parts = fullName.trim().split(/\s+/);
+        return parts.length > 1 ? parts[parts.length - 1] : parts[0];
+    }
+
+    // Sortiert das Personen-Array nach Nachname A-Z
+    function sortPeople() {
+        people.sort(function(a, b) {
+            var lastNameA = getLastName(a.name).toLowerCase();
+            var lastNameB = getLastName(b.name).toLowerCase();
+            return lastNameA.localeCompare(lastNameB, 'de', { sensitivity: 'base' });
+        });
     }
 
     function toggleAdmin() {
@@ -338,6 +351,7 @@
     }
 
     function renderAll() {
+        sortPeople(); // Vor dem Anzeigen immer neu nach Nachname sortieren
         renderDrinkBadges();
         renderPeople();
         renderSummary();

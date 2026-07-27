@@ -427,14 +427,6 @@
         var pinInput = document.getElementById('loginPinInput').value.trim();
 
         var fullName = firstName + ' ' + lastName;
-
-        if (fullName.toLowerCase() === 'justus neckermann' && pinInput === '0104') {
-            currentUser = { name: 'Justus Neckermann', pin: '0104', isAdmin: true };
-            saveSession(currentUser);
-            initUserSession();
-            return;
-        }
-
         var userKey = fullName.toLowerCase().replace(/\s+/g, '_');
         var user = users[userKey];
 
@@ -485,6 +477,12 @@
             statusElem.className = 'user-status';
             document.body.classList.remove('is-admin');
         }
+
+        // Formulareditoren für den nächsten Login leeren
+        document.querySelectorAll('input[type="text"], input[type="password"]').forEach(function(input) {
+            input.value = '';
+        });
+
         renderUIOnly();
     }
 
@@ -663,10 +661,8 @@
         if (!drink) return;
 
         if (confirm('Möchtest du "' + drink.name + '" wirklich löschen? (Offene Striche für dieses Getränk werden ebenfalls entfernt)')) {
-            // 1. Getränk aus Array entfernen
             drinkTypes = drinkTypes.filter(function(d) { return d.id !== drinkId; });
 
-            // 2. Getränk aus den Strichlisten aller Personen bereinigen
             for (var i = 0; i < people.length; i++) {
                 if (people[i].drinks && people[i].drinks[drinkId]) {
                     delete people[i].drinks[drinkId];
@@ -687,10 +683,8 @@
         if (confirm('Möchtest du "' + person.name + '" wirklich komplett löschen?')) {
             var removedName = person.name;
 
-            // 1. Aus Personenliste entfernen
             people = people.filter(function(p) { return p.id !== personId; });
 
-            // 2. User-Login entfernen, falls vorhanden
             var userKey = removedName.toLowerCase().replace(/\s+/g, '_');
             if (users[userKey]) {
                 delete users[userKey];
@@ -817,6 +811,7 @@
         for (var i = 0; i < people.length; i++) {
             var p = people[i];
 
+            // Normale Benutzer sehen nur sich selbst
             if (currentUser && !currentUser.isAdmin) {
                 if (p.name.toLowerCase() !== currentUser.name.toLowerCase()) {
                     continue;
@@ -848,17 +843,18 @@
             var adminActionsHtml = '';
             if (currentUser && currentUser.isAdmin) {
                 adminActionsHtml = '<div class="person-actions">' +
-                    '<button class="checkout-single-btn" onclick="checkoutPerson(\'' + p.id + '\')">Abrechnen</button>' +
-                    '<button class="admin-btn" style="color:#ff3b30; border-color:#ff3b30;" onclick="deletePersonById(\'' + p.id + '\')">Löschen</button>' +
+                    '<button class="checkout-single-btn" onclick="checkoutPerson(\'' + p.id + '\')">Einzeln abrechnen</button>' +
+                    '<button class="admin-btn" style="color:#ff3b30; border-color:#ff3b30;" onclick="deletePersonById(\'' + p.id + '\')">Person löschen</button>' +
                 '</div>';
             }
 
-            card.innerHTML = '<div class="person-header">' +
-                '<span class="person-name">' + escapeHtml(p.name) + '</span>' +
-                '<span class="person-total-cost">' + personTotalCost.toFixed(2).replace('.', ',') + ' €</span>' +
-            '</div>' +
-            '<div class="drink-rows">' + drinkRowsHtml + '</div>' +
-            adminActionsHtml;
+            card.innerHTML = 
+                '<div class="person-header">' +
+                    '<span class="person-name">' + escapeHtml(p.name) + '</span>' +
+                    '<span class="person-total-cost">' + personTotalCost.toFixed(2).replace('.', ',') + ' €</span>' +
+                '</div>' +
+                '<div class="drink-rows">' + drinkRowsHtml + '</div>' +
+                adminActionsHtml;
 
             container.appendChild(card);
         }

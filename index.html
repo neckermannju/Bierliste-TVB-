@@ -112,7 +112,7 @@
             color: white;
             text-align: center;
             padding: 14px;
-            display: none; /* Standardmäßig für alle aus */
+            display: none;
         }
         .summary-item .num { font-size: 20px; font-weight: 700; margin-bottom: 2px; }
         .summary-item .lbl { font-size: 11px; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -275,7 +275,7 @@
             </div>
         </div>
 
-        <!-- Nichts sichtbar für normale User: Virtuelle Kasse NUR für Admin -->
+        <!-- Virtuelle Kasse NUR für Admin -->
         <div class="card cash-card">
             <div class="summary-item">
                 <div class="lbl" style="opacity: 0.9;">💰 Virtuelle Kasse (Bestand)</div>
@@ -322,17 +322,17 @@
 
 <script>
     // =========================================================================
-    // 1. FIREBASE ZUGANGSDATEN HIER EINFÜGEN:
+    // 1. FIREBASE ZUGANGSDATEN:
     // =========================================================================
-const firebaseConfig = {
-  apiKey: "AIzaSyC_IpuPtm16j7OpMxga4_7s4aJ9wDLAZiE",
-  authDomain: "bierliste-tvb.firebaseapp.com",
-  databaseURL: "https://bierliste-tvb-default-rtdb.firebaseio.com",
-  projectId: "bierliste-tvb",
-  storageBucket: "bierliste-tvb.firebasestorage.app",
-  messagingSenderId: "203383350718",
-  appId: "1:203383350718:web:f9b2de01d99e5c4588c5ef"
-};
+    const firebaseConfig = {
+      apiKey: "AIzaSyC_IpuPtm16j7OpMxga4_7s4aJ9wDLAZiE",
+      authDomain: "bierliste-tvb.firebaseapp.com",
+      databaseURL: "https://bierliste-tvb-default-rtdb.firebaseio.com",
+      projectId: "bierliste-tvb",
+      storageBucket: "bierliste-tvb.firebasestorage.app",
+      messagingSenderId: "203383350718",
+      appId: "1:203383350718:web:f9b2de01d99e5c4588c5ef"
+    };
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
@@ -390,6 +390,7 @@ const firebaseConfig = {
         }
 
         var newUser = { name: fullName, pin: pin, isAdmin: false };
+        users[userKey] = newUser;
         db.ref('strichliste/users/' + userKey).set(newUser);
 
         var existingPerson = people.find(function(p) { return p.name.toLowerCase() === fullName.toLowerCase(); });
@@ -664,32 +665,29 @@ const firebaseConfig = {
         saveDataToCloud();
     }
 
-function deleteDrinkType(index) {
-    if (!currentUser || !currentUser.isAdmin) return;
-    if (confirm('Getränk wirklich entfernen?')) {
-        var removedName = drinkTypes[index].name;
-        drinkTypes.splice(index, 1);
-        addLogEntry('Getränk entfernt: ' + removedName);
-        saveDataToCloud();
+    function deleteDrinkType(index) {
+        if (!currentUser || !currentUser.isAdmin) return;
+        if (confirm('Getränk wirklich entfernen?')) {
+            var removedName = drinkTypes[index].name;
+            drinkTypes.splice(index, 1);
+            addLogEntry('Getränk entfernt: ' + removedName);
+            saveDataToCloud();
+        }
     }
-}
 
-function deletePersonById(personId) {
-    if (!currentUser || !currentUser.isAdmin) return;
+    function deletePersonById(personId) {
+        if (!currentUser || !currentUser.isAdmin) return;
 
-    var person = people.find(function(p) { return p.id === personId; });
-    if (!person) return;
+        var person = people.find(function(p) { return p.id === personId; });
+        if (!person) return;
 
-    if (confirm(person.name + ' wirklich löschen?')) {
-        var removedName = person.name;
-        
-        // Person anhand der ID aus dem Array filtern
-        people = people.filter(function(p) { return p.id !== personId; });
-        
-        addLogEntry('Person gelöscht: ' + removedName);
-        saveDataToCloud();
+        if (confirm(person.name + ' wirklich löschen?')) {
+            var removedName = person.name;
+            people = people.filter(function(p) { return p.id !== personId; });
+            addLogEntry('Person gelöscht: ' + removedName);
+            saveDataToCloud();
+        }
     }
-}
 
     function getLastName(fullName) {
         if (!fullName) return '';
@@ -730,7 +728,7 @@ function deletePersonById(personId) {
 
     function getPersonCost(person) {
         var cost = 0;
-        if(!person.drinks) return 0;
+        if (!person.drinks) return 0;
         for (var dId in person.drinks) {
             var cnt = person.drinks[dId] || 0;
             var dObj = getDrinkById(dId);
@@ -752,13 +750,12 @@ function deletePersonById(personId) {
         var totalMoney = 0;
 
         if (currentUser && currentUser.isAdmin) {
-            // Admin sieht Gesamtsummen & Kassenbestand
             document.getElementById('lblTotalDrinks').innerText = "Getränke offen (Alle)";
             document.getElementById('lblTotalCost').innerText = "Offener Betrag (Alle)";
             totalMoney = getCurrentTotalCost();
             for (var i = 0; i < people.length; i++) {
                 var p = people[i];
-                if(p.drinks) {
+                if (p.drinks) {
                     for (var dId in p.drinks) {
                         totalCount += (p.drinks[dId] || 0);
                     }
@@ -766,7 +763,6 @@ function deletePersonById(personId) {
             }
             document.getElementById('cashBalance').innerText = cashRegister.toFixed(2).replace('.', ',') + ' €';
         } else if (currentUser) {
-            // Normale Nutzer sehen nur ihre eigenen Getränke/Kosten
             document.getElementById('lblTotalDrinks').innerText = "Meine Getränke";
             document.getElementById('lblTotalCost').innerText = "Mein offener Betrag";
             var myPerson = people.find(function(p) { return p.name.toLowerCase() === currentUser.name.toLowerCase(); });
@@ -809,7 +805,7 @@ function deletePersonById(personId) {
             // NUR EIGENE STRICHE ANZEIGEN (wenn kein Admin)
             if (currentUser && !currentUser.isAdmin) {
                 if (p.name.toLowerCase() !== currentUser.name.toLowerCase()) {
-                    continue; // Andere Personen überspringen
+                    continue;
                 }
             }
 
@@ -823,35 +819,34 @@ function deletePersonById(personId) {
                 var drinkRowsHtml = '';
                 for (var d = 0; d < drinkTypes.length; d++) {
                     var drink = drinkTypes[d];
-                    var count = (personObj.drinks && personObj.drinks[drink.id]) ? personObj.drinks[drink.id] : 0;
-                    var tallyStr = formatTally(count);
+                    var cnt = (personObj.drinks && personObj.drinks[drink.id]) ? personObj.drinks[drink.id] : 0;
 
-                    drinkRowsHtml += 
-                        '<div class="drink-row">' +
-                            '<div class="drink-info">' +
-                                '<span class="drink-name">' + escapeHtml(drink.name) + ' (' + drink.price.toFixed(2).replace('.', ',') + ' €)</span>' +
-                                '<span class="drink-tally">' + tallyStr + '</span>' +
-                            '</div>' +
-                            '<div class="btn-group">' +
-                                '<button type="button" class="btn-sm minus" onclick="changeCount(' + pIdx + ', \'' + drink.id + '\', -1)">-</button>' +
-                                '<span class="count-val">' + count + '</span>' +
-                                '<button type="button" class="btn-sm plus" onclick="changeCount(' + pIdx + ', \'' + drink.id + '\', 1)">+</button>' +
-                            '</div>' +
-                        '</div>';
+                    drinkRowsHtml += '<div class="drink-row">' +
+                        '<div class="drink-info">' +
+                            '<span class="drink-name">' + escapeHtml(drink.name) + ' (' + drink.price.toFixed(2).replace('.', ',') + ' €)</span>' +
+                            '<span class="drink-tally">' + formatTally(cnt) + '</span>' +
+                        '</div>' +
+                        '<div class="btn-group">' +
+                            '<button class="btn-sm minus" onclick="changeCount(' + pIdx + ', \'' + drink.id + '\', -1)">-</button>' +
+                            '<span class="count-val">' + cnt + '</span>' +
+                            '<button class="btn-sm plus" onclick="changeCount(' + pIdx + ', \'' + drink.id + '\', 1)">+</button>' +
+                        '</div>' +
+                    '</div>';
                 }
 
-                var adminActions = (currentUser && currentUser.isAdmin) ? 
-                    '<div class="person-actions">' +
-                        '<button type="button" class="checkout-single-btn" onclick="checkoutPerson(' + pIdx + ')">💳 Einzeln abrechnen (' + personTotalCost.toFixed(2).replace('.', ',') + ' €)</button>' +
-                       '<button type="button" style="background:none; border:none; color:#ff3b30; font-size:12px; cursor:pointer;" onclick="deletePersonById(\'' + personObj.id + '\')">Person löschen</button>' +
-                    '</div>' : '';
+                var adminActionsHtml = '';
+                if (currentUser && currentUser.isAdmin) {
+                    adminActionsHtml = '<div class="person-actions">' +
+                        '<button class="checkout-single-btn" onclick="checkoutPerson(' + pIdx + ')">Abrechnen (' + personTotalCost.toFixed(2).replace('.', ',') + ' €)</button>' +
+                        '<button class="admin-btn" style="color:#ff3b30; border-color:#ff3b30;" onclick="deletePersonById(\'' + personObj.id + '\')">Löschen</button>' +
+                    '</div>';
+                }
 
-                card.innerHTML = 
-                    '<div class="person-header">' +
-                        '<span class="person-name">' + escapeHtml(personObj.name) + '</span>' +
-                        '<span class="person-total-cost">' + personTotalCost.toFixed(2).replace('.', ',') + ' €</span>' +
-                    '</div>' +
-                    '<div class="drink-rows">' + drinkRowsHtml + '</div>' + adminActions;
+                card.innerHTML = '<div class="person-header">' +
+                    '<span class="person-name">' + escapeHtml(personObj.name) + '</span>' +
+                    '<span class="person-total-cost">' + personTotalCost.toFixed(2).replace('.', ',') + ' €</span>' +
+                '</div>' +
+                '<div class="drink-rows">' + drinkRowsHtml + '</div>' + adminActionsHtml;
 
                 container.appendChild(card);
             })(i);

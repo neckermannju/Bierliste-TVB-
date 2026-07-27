@@ -208,7 +208,8 @@
             font-size: 12px;
             font-weight: 600;
         }
-        .status-sync { font-size: 11px; color: #007aff; text-align: center; margin-top: 4px; }
+        .status-sync { font-size: 11px; color: #007aff; text-align: center; margin-top: 4px; font-weight: 600; }
+        .status-sync.error { color: #ff3b30; }
         .log-list {
             max-height: 250px;
             overflow-y: auto;
@@ -253,8 +254,8 @@
         <form id="registerBox" style="display: none;" onsubmit="register(event)">
             <div class="card-title">📝 Registrieren</div>
             <div class="form-row">
-                <input type="text" id="regFirstNameInput" class="name-input" placeholder="Vorname" autocomplete="given-name" required>
-                <input type="text" id="regLastNameInput" class="name-input" placeholder="Nachname" autocomplete="family-name" required>
+                <input type="text" id="regFirstNameInput" class="name-input" placeholder="Vorname (z.B. Justus)" autocomplete="given-name" required>
+                <input type="text" id="regLastNameInput" class="name-input" placeholder="Nachname (z.B. Neckermann)" autocomplete="family-name" required>
                 <input type="password" maxlength="4" pattern="\d{4}" id="regPinInput" placeholder="4-stellige PIN ausdenken" autocomplete="new-password" inputmode="numeric" required>
                 <button type="submit" class="primary-btn">Konto erstellen & Anmelden</button>
             </div>
@@ -323,18 +324,17 @@
 </div>
 
 <script>
-    // FIREBASE CONFIG
-// FIREBASE CONFIG
-const firebaseConfig = {
-  apiKey: "AIzaSyC_IpuPtm16j7OpMxga4_7s4aJ9wDLAZiE",
-  authDomain: "bierliste-tvb.firebaseapp.com",
-  // HIER ANPASSEN:
-  databaseURL: "https://bierliste-tvb-default-rtdb.us-central1.firebasedatabase.app",
-  projectId: "bierliste-tvb",
-  storageBucket: "bierliste-tvb.firebasestorage.app",
-  messagingSenderId: "203383350718",
-  appId: "1:203383350718:web:f9b2de01d99e5c4588c5ef"
-};
+    // FIREBASE CONFIG (us-central1 angepasst)
+    const firebaseConfig = {
+      apiKey: "AIzaSyC_IpuPtm16j7OpMxga4_7s4aJ9wDLAZiE",
+      authDomain: "bierliste-tvb.firebaseapp.com",
+      databaseURL: "https://bierliste-tvb-default-rtdb.us-central1.firebasedatabase.app",
+      projectId: "bierliste-tvb",
+      storageBucket: "bierliste-tvb.firebasestorage.app",
+      messagingSenderId: "203383350718",
+      appId: "1:203383350718:web:f9b2de01d99e5c4588c5ef"
+    };
+
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
@@ -344,6 +344,16 @@ const firebaseConfig = {
     var drinkTypes = [];
     var people = [];
     var logs = [];
+
+    function updateSyncStatus(text, isError) {
+        var elem = document.getElementById('syncStatus');
+        elem.innerText = text;
+        if (isError) {
+            elem.classList.add('error');
+        } else {
+            elem.classList.remove('error');
+        }
+    }
 
     function firebaseDataToArray(data) {
         if (!data) return [];
@@ -375,10 +385,16 @@ const firebaseConfig = {
         }).join(' ');
     }
 
-    // Funktion zur Generierung des Benutzernamens: nachname + erste 2 Buchst. vorname
+    // Saubere Benutzernamen-Generierung (inkl. Umlaute-Ersetzung)
     function generateUsername(firstName, lastName) {
-        var cleanFirst = firstName.trim().toLowerCase().replace(/[^a-zäöüß]/g, '');
-        var cleanLast = lastName.trim().toLowerCase().replace(/[^a-zäöüß]/g, '');
+        var cleanFirst = firstName.trim().toLowerCase()
+            .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+            .replace(/[^a-z]/g, '');
+            
+        var cleanLast = lastName.trim().toLowerCase()
+            .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+            .replace(/[^a-z]/g, '');
+
         var firstTwo = cleanFirst.substring(0, 2);
         return cleanLast + firstTwo;
     }
@@ -390,6 +406,59 @@ const firebaseConfig = {
     function showLoginView() {
         document.getElementById('registerBox').style.display = 'none';
         document.getElementById('loginBox').style.display = 'block';
+    }
+
+    // Live Firebase Listener
+    db.ref('strichliste').on('value', function(snapshot) {
+        updateSyncStatus("🟢 Live synchronisiert", false);
+        var data = snapshot.val();
+
+        if (data) {
+            drinkTypes = firebaseDataToArray(data.drinkTypes);
+            people = firebaseDataToArray(data.people);
+            cashRegister = data.cashRegister || 0.00;
+            logs = firebaseDataToArray(data.logs);
+            users = data.users || {};
+        } else {
+            // Standard-Daten anlegen, falls Datenbank komplett leer ist
+            drinkTypes = [
+                { id: 'b1', name: 'Bier', price: 2.50 },
+                { id: 'b2', name: 'Radler', price: 2.50 },
+                { id: 'b3', name: 'Alkoholfrei', price: 2.00 }
+            ];
+            users = {
+                'neckermannju': { username: 'neckermannju', name: 'Justus Neckermann', pin: '0104', isAdmin: true }
+            };
+            people = [
+                { id: 'p_neckermannju', username: 'neckermannju', name: 'Justus Neckermann', drinks: {} }
+            ];
+            cashRegister = 0.00;
+            logs = [];
+            saveDataToCloud();
+        }
+
+        if (!currentUser) restoreSession();
+        if (currentUser) renderUIOnly();
+    }, function(error) {
+        console.error("Firebase Fehler:", error);
+        updateSyncStatus("🔴 Fehler: Keine Berechtigung oder falsche URL! (Regeln prüfen)", true);
+    });
+
+    function saveDataToCloud() {
+        updateSyncStatus("🔄 Speichert...", false);
+        db.ref('strichliste').set({
+            drinkTypes: drinkTypes,
+            people: people,
+            cashRegister: cashRegister,
+            users: users,
+            logs: logs
+        }).then(function() {
+            updateSyncStatus("🟢 Live synchronisiert", false);
+        }).catch(function(err) {
+            console.error("Speicherfehler:", err);
+            updateSyncStatus("🔴 Speichern fehlgeschlagen!", true);
+            alert("Fehler beim Speichern in Firebase! Bitte überprüfe deine Datenbank-Regeln.");
+        });
     }
 
     function register(event) {
@@ -406,11 +475,12 @@ const firebaseConfig = {
         var username = generateUsername(firstName, lastName);
         var fullName = firstName + ' ' + lastName;
 
-        if (users[username]) {
-            alert('Der Benutzername "' + username + '" existiert bereits.');
+        if (users && users[username]) {
+            alert('Der Benutzername "' + username + '" ist bereits vergeben!');
             return;
         }
 
+        // neckermannju ist automatisch Admin
         var isAdmin = (username === 'neckermannju');
 
         var newUser = { 
@@ -420,17 +490,19 @@ const firebaseConfig = {
             isAdmin: isAdmin 
         };
 
+        if (!users) users = {};
         users[username] = newUser;
-        db.ref('strichliste/users/' + username).set(newUser);
 
+        // Zur Personenliste hinzufügen falls noch nicht vorhanden
         var existingPerson = people.find(function(p) { return p.username === username; });
         if (!existingPerson) {
-            people.push({ id: 'p_' + Date.now(), username: username, name: fullName, drinks: {} });
-            db.ref('strichliste/people').set(people);
+            people.push({ id: 'p_' + username, username: username, name: fullName, drinks: {} });
         }
 
-        addLogEntry('Neuer Benutzer registriert: ' + fullName + ' (' + username + ')', fullName);
-        alert('Registrierung erfolgreich!\nDein Benutzername lautet: ' + username);
+        addLogEntry('Neuer Benutzer registriert: ' + fullName + ' (@' + username + ')', fullName);
+        saveDataToCloud();
+
+        alert('Registrierung erfolgreich!\n\nDein Benutzername lautet: ' + username);
         
         currentUser = newUser;
         saveSession(currentUser);
@@ -442,14 +514,19 @@ const firebaseConfig = {
         var usernameInput = document.getElementById('loginUsernameInput').value.trim().toLowerCase();
         var pinInput = document.getElementById('loginPinInput').value.trim();
 
+        if (!users || !users[usernameInput]) {
+            alert('Benutzername "' + usernameInput + '" wurde nicht gefunden!');
+            return;
+        }
+
         var user = users[usernameInput];
 
-        if (user && user.pin === pinInput) {
+        if (user.pin === pinInput) {
             currentUser = user;
             saveSession(currentUser);
             initUserSession();
         } else {
-            alert('Benutzername oder PIN falsch!');
+            alert('Falsche PIN!');
         }
     }
 
@@ -461,8 +538,11 @@ const firebaseConfig = {
         var savedUser = sessionStorage.getItem('strichliste_user');
         if (savedUser) {
             try {
-                currentUser = JSON.parse(savedUser);
-                initUserSession();
+                var parsed = JSON.parse(savedUser);
+                if (users && users[parsed.username]) {
+                    currentUser = users[parsed.username]; // Aktuelle Daten aus DB laden
+                    initUserSession();
+                }
             } catch (e) {
                 sessionStorage.removeItem('strichliste_user');
             }
@@ -483,11 +563,11 @@ const firebaseConfig = {
 
         var statusElem = document.getElementById('userStatusText');
         if (currentUser.isAdmin) {
-            statusElem.innerText = '🔑 Admin: ' + currentUser.name + ' (' + currentUser.username + ')';
+            statusElem.innerText = '🔑 Admin: ' + currentUser.name + ' (@' + currentUser.username + ')';
             statusElem.className = 'user-status admin';
             document.body.classList.add('is-admin');
         } else {
-            statusElem.innerText = '👤 Eingeloggt als: ' + currentUser.name + ' (' + currentUser.username + ')';
+            statusElem.innerText = '👤 Eingeloggt als: ' + currentUser.name + ' (@' + currentUser.username + ')';
             statusElem.className = 'user-status';
             document.body.classList.remove('is-admin');
         }
@@ -507,46 +587,6 @@ const firebaseConfig = {
         var logObj = { text: actor + ': ' + message, time: timeStr };
         logs.unshift(logObj);
         if (logs.length > 100) logs.pop();
-        db.ref('strichliste/logs').set(logs);
-    }
-
-    // Firebase Listener
-    db.ref('strichliste').on('value', function(snapshot) {
-        var data = snapshot.val();
-        document.getElementById('syncStatus').innerText = "🟢 Live synchronisiert";
-
-        if (data) {
-            drinkTypes = firebaseDataToArray(data.drinkTypes);
-            people = firebaseDataToArray(data.people);
-            cashRegister = data.cashRegister || 0.00;
-            logs = firebaseDataToArray(data.logs);
-            users = data.users || {};
-        } else {
-            drinkTypes = [
-                { id: 'b1', name: 'Bier', price: 2.50 },
-                { id: 'b2', name: 'Radler', price: 2.50 },
-                { id: 'b3', name: 'Alkoholfrei', price: 2.00 }
-            ];
-            people = [
-                { id: 'p_admin', username: 'neckermannju', name: 'Justus Neckermann', drinks: {} }
-            ];
-            cashRegister = 0.00;
-            logs = [];
-            users = {};
-            users['neckermannju'] = { username: 'neckermannju', name: 'Justus Neckermann', pin: '0104', isAdmin: true };
-            saveDataToCloud();
-        }
-
-        if (!currentUser) restoreSession();
-        if (currentUser) renderUIOnly();
-    });
-
-    function saveDataToCloud() {
-        document.getElementById('syncStatus').innerText = "🔄 Speichert...";
-        db.ref('strichliste/drinkTypes').set(drinkTypes);
-        db.ref('strichliste/people').set(people);
-        db.ref('strichliste/cashRegister').set(cashRegister);
-        db.ref('strichliste/users').set(users);
     }
 
     function renderUIOnly() {
@@ -576,7 +616,7 @@ const firebaseConfig = {
         if (!currentUser || !currentUser.isAdmin) return;
         if (confirm('Aktivitäts-Protokoll löschen?')) {
             logs = [];
-            db.ref('strichliste/logs').set([]);
+            saveDataToCloud();
         }
     }
 
@@ -673,7 +713,7 @@ const firebaseConfig = {
         var drink = drinkTypes.find(function(d) { return d.id === drinkId; });
         if (!drink) return;
 
-        if (confirm('Möchtest du "' + drink.name + '" wirklich löschen? (Offene Striche dafür werden entfernt)')) {
+        if (confirm('Möchtest du "' + drink.name + '" wirklich löschen?')) {
             drinkTypes = drinkTypes.filter(function(d) { return d.id !== drinkId; });
 
             for (var i = 0; i < people.length; i++) {
@@ -683,8 +723,7 @@ const firebaseConfig = {
             }
 
             addLogEntry('Getränk gelöscht: ' + drink.name);
-            db.ref('strichliste/drinkTypes').set(drinkTypes);
-            db.ref('strichliste/people').set(people);
+            saveDataToCloud();
         }
     }
 
@@ -694,18 +733,17 @@ const firebaseConfig = {
         var person = people.find(function(p) { return p.id === personId; });
         if (!person) return;
 
-        if (confirm('Möchtest du "' + person.name + '" wirklich komplett löschen?')) {
+        if (confirm('Möchtest du "' + person.name + '" und den Benutzerzugang wirklich löschen?')) {
             var username = person.username;
 
             people = people.filter(function(p) { return p.id !== personId; });
 
             if (username && users[username]) {
                 delete users[username];
-                db.ref('strichliste/users/' + username).remove();
             }
 
-            addLogEntry('Person gelöscht: ' + person.name + ' (' + username + ')');
-            db.ref('strichliste/people').set(people);
+            addLogEntry('Person gelöscht: ' + person.name + ' (@' + username + ')');
+            saveDataToCloud();
         }
     }
 

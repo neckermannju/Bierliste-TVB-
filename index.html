@@ -324,16 +324,17 @@
 
 <script>
     // FIREBASE CONFIG
-    const firebaseConfig = {
-      apiKey: "AIzaSyC_IpuPtm16j7OpMxga4_7s4aJ9wDLAZiE",
-      authDomain: "bierliste-tvb.firebaseapp.com",
-      databaseURL: "https://bierliste-tvb-default-rtdb.firebaseio.com",
-      projectId: "bierliste-tvb",
-      storageBucket: "bierliste-tvb.firebasestorage.app",
-      messagingSenderId: "203383350718",
-      appId: "1:203383350718:web:f9b2de01d99e5c4588c5ef"
-    };
-
+// FIREBASE CONFIG
+const firebaseConfig = {
+  apiKey: "AIzaSyC_IpuPtm16j7OpMxga4_7s4aJ9wDLAZiE",
+  authDomain: "bierliste-tvb.firebaseapp.com",
+  // HIER ANPASSEN:
+  databaseURL: "https://bierliste-tvb-default-rtdb.us-central1.firebasedatabase.app",
+  projectId: "bierliste-tvb",
+  storageBucket: "bierliste-tvb.firebasestorage.app",
+  messagingSenderId: "203383350718",
+  appId: "1:203383350718:web:f9b2de01d99e5c4588c5ef"
+};
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 

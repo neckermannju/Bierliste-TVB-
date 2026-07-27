@@ -86,11 +86,28 @@
             cursor: pointer;
             white-space: nowrap;
         }
+        button.danger-btn {
+            padding: 12px 14px;
+            background-color: #ff3b30;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+        }
         .summary-card {
             background: linear-gradient(135deg, #007aff, #5856d6);
             color: white;
             display: flex;
             justify-content: space-around;
+            text-align: center;
+            padding: 14px;
+        }
+        .cash-card {
+            background: linear-gradient(135deg, #34c759, #30b050);
+            color: white;
             text-align: center;
             padding: 14px;
         }
@@ -250,11 +267,32 @@
     <div class="card summary-card">
         <div class="summary-item">
             <div class="num" id="totalDrinks">0</div>
-            <div class="lbl">Getränke gesamt</div>
+            <div class="lbl">Getränke offen</div>
         </div>
         <div class="summary-item">
             <div class="num" id="totalCost">0,00 €</div>
-            <div class="lbl">Gesamtsumme</div>
+            <div class="lbl">Offener Betrag</div>
+        </div>
+    </div>
+
+    <!-- Virtuelle Kasse (Nur Admin) -->
+    <div class="card cash-card admin-only-block">
+        <div class="summary-item">
+            <div class="lbl" style="opacity: 0.9;">💰 Virtuelle Kasse (Bestand)</div>
+            <div class="num" id="cashBalance" style="font-size: 26px; margin-top: 4px;">0,00 €</div>
+        </div>
+    </div>
+
+    <!-- Admin Aktionen (Abrechnung & Kassenbuchung) -->
+    <div class="card admin-only-block">
+        <div class="card-title">⚡ Abrechnung & Kasse (Admin)</div>
+        <button class="danger-btn" onclick="confirmCheckout()" style="margin-bottom: 12px;">
+            ✅ Abrechnung bestätigen & Striche nullen
+        </button>
+        <div style="font-size: 12px; color: #8e8e93; margin-bottom: 8px;">Manuelle Kassenbuchung (Einnahme/Ausgabe):</div>
+        <div class="form-row">
+            <input type="number" step="0.50" id="cashAdjustmentInput" placeholder="Betrag € (z.B. 10 oder -5)">
+            <button class="primary-btn" onclick="adjustCash()">Buchen</button>
         </div>
     </div>
 
@@ -284,12 +322,14 @@
 
 <script>
     // STANDARD ADMIN PASSWORT
-    var ADMIN_PASSWORD = "1902";
+    var ADMIN_PASSWORD = "190296";
     var isAdmin = false;
 
+    var cashRegister = 0.00;
+
     var drinkTypes = [
-        { id: 'b1', name: 'Bier', price: 2.50 },
-        { id: 'b2', name: 'Radler', price: 2.50 },
+        { id: 'b1', name: 'Bier', price: 1,5 },
+        { id: 'b2', name: 'Radler', price: 1.50 },
         { id: 'b3', name: 'Alkoholfrei', price: 2.00 }
     ];
 
@@ -301,24 +341,25 @@
     try {
         var savedDrinks = localStorage.getItem('bierStrichliste_drinks');
         var savedPeople = localStorage.getItem('bierStrichliste_people');
+        var savedCash = localStorage.getItem('bierStrichliste_cash');
         if (savedDrinks) drinkTypes = JSON.parse(savedDrinks);
         if (savedPeople) people = JSON.parse(savedPeople);
+        if (savedCash !== null) cashRegister = parseFloat(savedCash);
     } catch(e) {}
 
     function saveData() {
         try {
             localStorage.setItem('bierStrichliste_drinks', JSON.stringify(drinkTypes));
             localStorage.setItem('bierStrichliste_people', JSON.stringify(people));
+            localStorage.setItem('bierStrichliste_cash', cashRegister.toString());
         } catch(e) {}
     }
 
-    // Hilfsfunktion: Extrahiert den Nachnamen für die Sortierung
     function getLastName(fullName) {
         var parts = fullName.trim().split(/\s+/);
         return parts.length > 1 ? parts[parts.length - 1] : parts[0];
     }
 
-    // Sortiert das Personen-Array nach Nachname A-Z
     function sortPeople() {
         people.sort(function(a, b) {
             var lastNameA = getLastName(a.name).toLowerCase();
@@ -351,7 +392,7 @@
     }
 
     function renderAll() {
-        sortPeople(); // Vor dem Anzeigen immer neu nach Nachname sortieren
+        sortPeople();
         renderDrinkBadges();
         renderPeople();
         renderSummary();
@@ -374,24 +415,73 @@
         }
     }
 
-    function renderSummary() {
-        var totalCount = 0;
+    function getCurrentTotalCost() {
         var totalMoney = 0;
-
         for (var i = 0; i < people.length; i++) {
             var p = people[i];
             for (var dId in p.drinks) {
                 var cnt = p.drinks[dId] || 0;
-                totalCount += cnt;
                 var drinkObj = getDrinkById(dId);
                 if (drinkObj) {
                     totalMoney += cnt * drinkObj.price;
                 }
             }
         }
+        return totalMoney;
+    }
+
+    function renderSummary() {
+        var totalCount = 0;
+        var totalMoney = getCurrentTotalCost();
+
+        for (var i = 0; i < people.length; i++) {
+            var p = people[i];
+            for (var dId in p.drinks) {
+                totalCount += (p.drinks[dId] || 0);
+            }
+        }
 
         document.getElementById('totalDrinks').innerText = totalCount;
         document.getElementById('totalCost').innerText = totalMoney.toFixed(2).replace('.', ',') + ' €';
+        document.getElementById('cashBalance').innerText = cashRegister.toFixed(2).replace('.', ',') + ' €';
+    }
+
+    function confirmCheckout() {
+        if (!isAdmin) return;
+        var currentTotal = getCurrentTotalCost();
+        
+        if (currentTotal === 0) {
+            alert('Es gibt aktuell keine offenen Striche zum Abrechnen.');
+            return;
+        }
+
+        var confirmMsg = 'Möchtest du die Abrechnung wirklich durchführen?\n\n' +
+                         '• Der Betrag von ' + currentTotal.toFixed(2).replace('.', ',') + ' € wird der virtuellen Kasse gutgeschrieben.\n' +
+                         '• Alle Striche aller Personen werden auf 0 zurückgesetzt.';
+
+        if (confirm(confirmMsg)) {
+            cashRegister += currentTotal;
+            for (var i = 0; i < people.length; i++) {
+                people[i].drinks = {};
+            }
+            renderAll();
+            alert('Abrechnung erfolgreich! Die Kasse wurde aktualisiert und die Striche zurückgesetzt.');
+        }
+    }
+
+    function adjustCash() {
+        if (!isAdmin) return;
+        var input = document.getElementById('cashAdjustmentInput');
+        var amount = parseFloat(input.value.replace(',', '.'));
+
+        if (isNaN(amount) || amount === 0) {
+            alert('Bitte einen gültigen Betrag eingeben (z. B. 10 für Einnahme oder -5 für Ausgabe).');
+            return;
+        }
+
+        cashRegister += amount;
+        input.value = '';
+        renderAll();
     }
 
     function getDrinkById(id) {

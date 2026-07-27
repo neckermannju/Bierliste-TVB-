@@ -59,6 +59,9 @@
             outline: none;
             -webkit-appearance: none;
         }
+        input.name-input {
+            text-transform: capitalize;
+        }
         input:focus { border-color: #007aff; background-color: #fff; }
         button { cursor: pointer; touch-action: manipulation; }
         button.primary-btn {
@@ -230,7 +233,8 @@
         <div id="loginBox">
             <div class="card-title">🔐 Anmelden</div>
             <div class="form-row">
-                <input type="text" id="loginNameInput" placeholder="Vor- und Nachname">
+                <input type="text" id="loginFirstNameInput" class="name-input" placeholder="Vorname">
+                <input type="text" id="loginLastNameInput" class="name-input" placeholder="Nachname">
                 <input type="password" maxlength="4" pattern="\d{4}" id="loginPinInput" placeholder="4-stellige PIN">
                 <button class="primary-btn" onclick="login()">Einloggen</button>
             </div>
@@ -240,8 +244,8 @@
         <div id="registerBox" style="display: none;">
             <div class="card-title">📝 Registrieren</div>
             <div class="form-row">
-                <input type="text" id="regFirstNameInput" placeholder="Vorname">
-                <input type="text" id="regLastNameInput" placeholder="Nachname">
+                <input type="text" id="regFirstNameInput" class="name-input" placeholder="Vorname">
+                <input type="text" id="regLastNameInput" class="name-input" placeholder="Nachname">
                 <input type="password" maxlength="4" pattern="\d{4}" id="regPinInput" placeholder="4-stellige PIN ausdenken">
                 <button class="primary-btn" onclick="register()">Konto erstellen & Anmelden</button>
             </div>
@@ -325,7 +329,6 @@ const firebaseConfig = {
   messagingSenderId: "203383350718",
   appId: "1:203383350718:web:f9b2de01d99e5c4588c5ef"
 };
-
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
@@ -344,6 +347,14 @@ const firebaseConfig = {
         });
     }
 
+    // Hilfsfunktion: Wandelt Namen automatisch in "Erster Buchstabe groß, Rest klein" um
+    function capitalizeName(str) {
+        if (!str) return '';
+        return str.trim().split(/\s+/).map(function(word) {
+            return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+        }).join(' ');
+    }
+
     // Auth Views umschalten
     function showRegisterView() {
         document.getElementById('loginBox').style.display = 'none';
@@ -356,8 +367,8 @@ const firebaseConfig = {
 
     // Registrierung
     function register() {
-        var firstName = document.getElementById('regFirstNameInput').value.trim();
-        var lastName = document.getElementById('regLastNameInput').value.trim();
+        var firstName = capitalizeName(document.getElementById('regFirstNameInput').value);
+        var lastName = capitalizeName(document.getElementById('regLastNameInput').value);
         var pin = document.getElementById('regPinInput').value.trim();
 
         if (!firstName || !lastName || pin.length !== 4 || isNaN(pin)) {
@@ -393,22 +404,25 @@ const firebaseConfig = {
 
     // Login
     function login() {
-        var nameInput = document.getElementById('loginNameInput').value.trim();
+        var firstName = capitalizeName(document.getElementById('loginFirstNameInput').value);
+        var lastName = capitalizeName(document.getElementById('loginLastNameInput').value);
         var pinInput = document.getElementById('loginPinInput').value.trim();
 
-        if (!nameInput || !pinInput) {
-            alert('Bitte Name und PIN eingeben.');
+        if (!firstName || !lastName || !pinInput) {
+            alert('Bitte Vorname, Nachname und PIN eingeben.');
             return;
         }
 
+        var fullName = firstName + ' ' + lastName;
+
         // Admin Prüfung: Justus Neckermann / 0104
-        if (nameInput.toLowerCase() === 'justus neckermann' && pinInput === '0104') {
+        if (fullName.toLowerCase() === 'justus neckermann' && pinInput === '0104') {
             currentUser = { name: 'Justus Neckermann', pin: '0104', isAdmin: true };
             initUserSession();
             return;
         }
 
-        var userKey = nameInput.toLowerCase().replace(/\s+/g, '_');
+        var userKey = fullName.toLowerCase().replace(/\s+/g, '_');
         var user = users[userKey];
 
         if (user && user.pin === pinInput) {

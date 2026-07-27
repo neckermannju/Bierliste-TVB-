@@ -324,7 +324,7 @@
 </div>
 
 <script>
-    // FIREBASE CONFIG (us-central1 angepasst)
+    // FIREBASE CONFIG
     const firebaseConfig = {
       apiKey: "AIzaSyC_IpuPtm16j7OpMxga4_7s4aJ9wDLAZiE",
       authDomain: "bierliste-tvb.firebaseapp.com",
@@ -355,12 +355,25 @@
         }
     }
 
-    function firebaseDataToArray(data) {
+    // Verbesserter Konverter: Garantiert, dass JEDES Objekt eine gültige ID hat
+    function firebaseDataToArray(data, idPrefix) {
         if (!data) return [];
-        if (Array.isArray(data)) {
-            return data.filter(function(item) { return item !== null && item !== undefined; });
-        }
         var arr = [];
+        var prefix = idPrefix || 'item_';
+
+        if (Array.isArray(data)) {
+            for (var i = 0; i < data.length; i++) {
+                if (data[i] !== null && data[i] !== undefined) {
+                    var item = data[i];
+                    if (!item.id) {
+                        item.id = prefix + (item.username || i || Date.now());
+                    }
+                    arr.push(item);
+                }
+            }
+            return arr;
+        }
+
         for (var key in data) {
             if (data.hasOwnProperty(key) && data[key]) {
                 var item = data[key];
@@ -385,7 +398,6 @@
         }).join(' ');
     }
 
-    // Saubere Benutzernamen-Generierung (inkl. Umlaute-Ersetzung)
     function generateUsername(firstName, lastName) {
         var cleanFirst = firstName.trim().toLowerCase()
             .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
@@ -408,19 +420,18 @@
         document.getElementById('loginBox').style.display = 'block';
     }
 
-    // Live Firebase Listener
+    // Live Listener
     db.ref('strichliste').on('value', function(snapshot) {
         updateSyncStatus("🟢 Live synchronisiert", false);
         var data = snapshot.val();
 
         if (data) {
-            drinkTypes = firebaseDataToArray(data.drinkTypes);
-            people = firebaseDataToArray(data.people);
+            drinkTypes = firebaseDataToArray(data.drinkTypes, 'd_');
+            people = firebaseDataToArray(data.people, 'p_');
             cashRegister = data.cashRegister || 0.00;
-            logs = firebaseDataToArray(data.logs);
+            logs = firebaseDataToArray(data.logs, 'log_');
             users = data.users || {};
         } else {
-            // Standard-Daten anlegen, falls Datenbank komplett leer ist
             drinkTypes = [
                 { id: 'b1', name: 'Bier', price: 2.50 },
                 { id: 'b2', name: 'Radler', price: 2.50 },
@@ -441,7 +452,7 @@
         if (currentUser) renderUIOnly();
     }, function(error) {
         console.error("Firebase Fehler:", error);
-        updateSyncStatus("🔴 Fehler: Keine Berechtigung oder falsche URL! (Regeln prüfen)", true);
+        updateSyncStatus("🔴 Fehler: Keine Berechtigung oder falsche URL!", true);
     });
 
     function saveDataToCloud() {
@@ -480,7 +491,6 @@
             return;
         }
 
-        // neckermannju ist automatisch Admin
         var isAdmin = (username === 'neckermannju');
 
         var newUser = { 
@@ -493,7 +503,6 @@
         if (!users) users = {};
         users[username] = newUser;
 
-        // Zur Personenliste hinzufügen falls noch nicht vorhanden
         var existingPerson = people.find(function(p) { return p.username === username; });
         if (!existingPerson) {
             people.push({ id: 'p_' + username, username: username, name: fullName, drinks: {} });
@@ -540,7 +549,7 @@
             try {
                 var parsed = JSON.parse(savedUser);
                 if (users && users[parsed.username]) {
-                    currentUser = users[parsed.username]; // Aktuelle Daten aus DB laden
+                    currentUser = users[parsed.username];
                     initUserSession();
                 }
             } catch (e) {
@@ -584,7 +593,7 @@
         var timeStr = now.toLocaleDateString('de-DE') + ' ' + now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
         var actor = actorOverride || (currentUser ? currentUser.name + (currentUser.isAdmin ? ' (Admin)' : '') : 'System');
 
-        var logObj = { text: actor + ': ' + message, time: timeStr };
+        var logObj = { id: 'log_' + Date.now(), text: actor + ': ' + message, time: timeStr };
         logs.unshift(logObj);
         if (logs.length > 100) logs.pop();
     }
@@ -616,23 +625,38 @@
         if (!currentUser || !currentUser.isAdmin) return;
         if (confirm('Aktivitäts-Protokoll löschen?')) {
             logs = [];
+            renderUIOnly();
             saveDataToCloud();
         }
     }
 
+    // KORRIGIERTE STRICHLISTEN-FUNKTION
     function changeCount(personId, drinkId, delta) {
-        var person = people.find(function(p) { return p.id === personId; });
-        if (!person) return;
+        // Suche über ID oder als Fallback über Username
+        var person = people.find(function(p) { return p.id === personId || p.username === personId; });
+        if (!person) {
+            console.error("Person nicht gefunden:", personId);
+            return;
+        }
 
-        if (!person.drinks) person.drinks = {};
-        if (!person.drinks[drinkId]) person.drinks[drinkId] = 0;
+        if (!person.drinks || typeof person.drinks !== 'object') {
+            person.drinks = {};
+        }
 
-        var newCount = person.drinks[drinkId] + delta;
+        var currentCount = person.drinks[drinkId] || 0;
+        var newCount = currentCount + delta;
+
         if (newCount >= 0) {
             person.drinks[drinkId] = newCount;
             var drink = getDrinkById(drinkId);
             var drinkName = drink ? drink.name : 'Getränk';
+
             addLogEntry((delta > 0 ? '+1 ' : '-1 ') + drinkName + ' bei ' + person.name);
+            
+            // Sofortige visuelle Aktualisierung auf dem Bildschirm
+            renderUIOnly();
+
+            // Synch mit Firebase Cloud
             saveDataToCloud();
         }
     }
@@ -652,13 +676,14 @@
                 people[i].drinks = {};
             }
             addLogEntry('Gesamtabrechnung: ' + currentTotal.toFixed(2).replace('.', ',') + ' € verbucht.');
+            renderUIOnly();
             saveDataToCloud();
         }
     }
 
     function checkoutPerson(personId) {
         if (!currentUser || !currentUser.isAdmin) return;
-        var p = people.find(function(item) { return item.id === personId; });
+        var p = people.find(function(item) { return item.id === personId || item.username === personId; });
         if (!p) return;
 
         var cost = getPersonCost(p);
@@ -671,6 +696,7 @@
             cashRegister += cost;
             p.drinks = {};
             addLogEntry('Abrechnung für ' + p.name + ': ' + cost.toFixed(2).replace('.', ',') + ' €');
+            renderUIOnly();
             saveDataToCloud();
         }
     }
@@ -685,6 +711,7 @@
         cashRegister += amount;
         addLogEntry('Kassenbuchung: ' + (amount > 0 ? '+' : '') + amount.toFixed(2).replace('.', ',') + ' €');
         input.value = '';
+        renderUIOnly();
         saveDataToCloud();
     }
 
@@ -704,6 +731,7 @@
         addLogEntry('Neues Getränk: ' + name + ' (' + price.toFixed(2).replace('.', ',') + ' €)');
         nameInput.value = '';
         priceInput.value = '';
+        renderUIOnly();
         saveDataToCloud();
     }
 
@@ -723,6 +751,7 @@
             }
 
             addLogEntry('Getränk gelöscht: ' + drink.name);
+            renderUIOnly();
             saveDataToCloud();
         }
     }
@@ -730,19 +759,20 @@
     function deletePersonById(personId) {
         if (!currentUser || !currentUser.isAdmin) return;
 
-        var person = people.find(function(p) { return p.id === personId; });
+        var person = people.find(function(p) { return p.id === personId || p.username === personId; });
         if (!person) return;
 
         if (confirm('Möchtest du "' + person.name + '" und den Benutzerzugang wirklich löschen?')) {
             var username = person.username;
 
-            people = people.filter(function(p) { return p.id !== personId; });
+            people = people.filter(function(p) { return p.id !== person.id; });
 
             if (username && users[username]) {
                 delete users[username];
             }
 
             addLogEntry('Person gelöscht: ' + person.name + ' (@' + username + ')');
+            renderUIOnly();
             saveDataToCloud();
         }
     }
@@ -790,7 +820,7 @@
 
     function getPersonCost(person) {
         var cost = 0;
-        if (!person.drinks) return 0;
+        if (!person || !person.drinks) return 0;
         for (var dId in person.drinks) {
             var cnt = person.drinks[dId] || 0;
             var dObj = getDrinkById(dId);
@@ -817,7 +847,7 @@
             totalMoney = getCurrentTotalCost();
             for (var i = 0; i < people.length; i++) {
                 var p = people[i];
-                if (p.drinks) {
+                if (p && p.drinks) {
                     for (var dId in p.drinks) {
                         totalCount += (p.drinks[dId] || 0);
                     }
@@ -843,7 +873,7 @@
     }
 
     function formatTally(count) {
-        if (count === 0) return '0';
+        if (!count || count === 0) return '0';
         var fullGroups = Math.floor(count / 5);
         var remainder = count % 5;
         var res = '';

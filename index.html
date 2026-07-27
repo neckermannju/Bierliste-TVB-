@@ -133,7 +133,9 @@
             font-weight: bold; 
             cursor: pointer; 
             margin-left: 6px;
-            padding: 0 4px;
+            padding: 2px 6px;
+            background: #ffe5e5;
+            border-radius: 50%;
         }
         .person-card { display: flex; flex-direction: column; gap: 10px; border-left: 4px solid #007aff; }
         .person-header { display: flex; justify-content: space-between; align-items: center; }
@@ -341,6 +343,23 @@
     var people = [];
     var logs = [];
 
+    // Hilfsfunktion: Konvertiert Firebase-Objekte oder Arrays sauber in ein JS-Array
+    function firebaseDataToArray(data) {
+        if (!data) return [];
+        if (Array.isArray(data)) {
+            return data.filter(function(item) { return item !== null && item !== undefined; });
+        }
+        var arr = [];
+        for (var key in data) {
+            if (data.hasOwnProperty(key) && data[key]) {
+                var item = data[key];
+                if (!item.id) item.id = key;
+                arr.push(item);
+            }
+        }
+        return arr;
+    }
+
     function escapeHtml(text) {
         if (!text) return '';
         return String(text).replace(/[&<>"']/g, function(m) {
@@ -480,15 +499,16 @@
         db.ref('strichliste/logs').set(logs);
     }
 
+    // Firebase Listener
     db.ref('strichliste').on('value', function(snapshot) {
         var data = snapshot.val();
         document.getElementById('syncStatus').innerText = "🟢 Live synchronisiert";
 
         if (data) {
-            drinkTypes = data.drinkTypes || [];
-            people = data.people || [];
+            drinkTypes = firebaseDataToArray(data.drinkTypes);
+            people = firebaseDataToArray(data.people);
             cashRegister = data.cashRegister || 0.00;
-            logs = data.logs || [];
+            logs = firebaseDataToArray(data.logs);
             users = data.users || {};
         } else {
             drinkTypes = [
@@ -636,7 +656,7 @@
         saveDataToCloud();
     }
 
-    // GETRÄNK LÖSCHEN QÜER ID (KORRIGIERT)
+    // VOLLSTÄNDIG REPARIERTES LÖSCHEN FÜR GETRÄNKE
     function deleteDrinkTypeById(drinkId) {
         if (!currentUser || !currentUser.isAdmin) return;
 
@@ -644,13 +664,21 @@
         if (!drink) return;
 
         if (confirm('Möchtest du "' + drink.name + '" wirklich löschen?')) {
-            drinkTypes = drinkTypes.filter(function(d) { return d.id !== drinkId; });
+            var newDrinkTypes = [];
+            for (var i = 0; i < drinkTypes.length; i++) {
+                if (drinkTypes[i].id !== drinkId) {
+                    newDrinkTypes.push(drinkTypes[i]);
+                }
+            }
+            drinkTypes = newDrinkTypes;
             addLogEntry('Getränk gelöscht: ' + drink.name);
-            saveDataToCloud();
+            
+            // Direkt in Firebase überschreiben
+            db.ref('strichliste/drinkTypes').set(drinkTypes);
         }
     }
 
-    // PERSON LÖSCHEN ÜBER ID (KORRIGIERT)
+    // VOLLSTÄNDIG REPARIERTES LÖSCHEN FÜR PERSONEN
     function deletePersonById(personId) {
         if (!currentUser || !currentUser.isAdmin) return;
 
@@ -659,16 +687,26 @@
 
         if (confirm('Möchtest du "' + person.name + '" wirklich komplett löschen?')) {
             var removedName = person.name;
-            people = people.filter(function(p) { return p.id !== personId; });
 
-            // Auch aus den registrierten Usern entfernen
+            var newPeople = [];
+            for (var i = 0; i < people.length; i++) {
+                if (people[i].id !== personId) {
+                    newPeople.push(people[i]);
+                }
+            }
+            people = newPeople;
+
+            // Aus der User-Liste löschen
             var userKey = removedName.toLowerCase().replace(/\s+/g, '_');
             if (users[userKey]) {
                 delete users[userKey];
+                db.ref('strichliste/users/' + userKey).remove();
             }
 
             addLogEntry('Person gelöscht: ' + removedName);
-            saveDataToCloud();
+
+            // Direkt in Firebase überschreiben
+            db.ref('strichliste/people').set(people);
         }
     }
 

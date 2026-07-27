@@ -664,25 +664,32 @@ const firebaseConfig = {
         saveDataToCloud();
     }
 
-    function deleteDrinkType(index) {
-        if (!currentUser || !currentUser.isAdmin) return;
-        if (confirm('Getränk wirklich entfernen?')) {
-            var removedName = drinkTypes[index].name;
-            drinkTypes.splice(index, 1);
-            addLogEntry('Getränk entfernt: ' + removedName);
-            saveDataToCloud();
-        }
+function deleteDrinkType(index) {
+    if (!currentUser || !currentUser.isAdmin) return;
+    if (confirm('Getränk wirklich entfernen?')) {
+        var removedName = drinkTypes[index].name;
+        drinkTypes.splice(index, 1);
+        addLogEntry('Getränk entfernt: ' + removedName);
+        saveDataToCloud();
     }
+}
 
-    function deletePerson(index) {
-        if (!currentUser || !currentUser.isAdmin) return;
-        if (confirm(people[index].name + ' wirklich löschen?')) {
-            var removedName = people[index].name;
-            people.splice(index, 1);
-            addLogEntry('Person gelöscht: ' + removedName);
-            saveDataToCloud();
-        }
+function deletePersonById(personId) {
+    if (!currentUser || !currentUser.isAdmin) return;
+
+    var person = people.find(function(p) { return p.id === personId; });
+    if (!person) return;
+
+    if (confirm(person.name + ' wirklich löschen?')) {
+        var removedName = person.name;
+        
+        // Person anhand der ID aus dem Array filtern
+        people = people.filter(function(p) { return p.id !== personId; });
+        
+        addLogEntry('Person gelöscht: ' + removedName);
+        saveDataToCloud();
     }
+}
 
     function getLastName(fullName) {
         if (!fullName) return '';
@@ -836,7 +843,7 @@ const firebaseConfig = {
                 var adminActions = (currentUser && currentUser.isAdmin) ? 
                     '<div class="person-actions">' +
                         '<button type="button" class="checkout-single-btn" onclick="checkoutPerson(' + pIdx + ')">💳 Einzeln abrechnen (' + personTotalCost.toFixed(2).replace('.', ',') + ' €)</button>' +
-                        '<button type="button" style="background:none; border:none; color:#ff3b30; font-size:12px; cursor:pointer;" onclick="deletePerson(' + pIdx + ')">Person löschen</button>' +
+                       '<button type="button" style="background:none; border:none; color:#ff3b30; font-size:12px; cursor:pointer;" onclick="deletePersonById(\'' + personObj.id + '\')">Person löschen</button>' +
                     '</div>' : '';
 
                 card.innerHTML = 

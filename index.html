@@ -60,6 +60,7 @@
             -webkit-appearance: none;
         }
         input.name-input { text-transform: capitalize; }
+        input.username-input { text-transform: lowercase; }
         input:focus { border-color: #007aff; background-color: #fff; }
         button { cursor: pointer; touch-action: manipulation; }
         button.primary-btn {
@@ -140,6 +141,7 @@
         .person-card { display: flex; flex-direction: column; gap: 10px; border-left: 4px solid #007aff; }
         .person-header { display: flex; justify-content: space-between; align-items: center; }
         .person-name { font-size: 17px; font-weight: 700; }
+        .person-username { font-size: 12px; color: #8e8e93; font-weight: normal; }
         .person-total-cost { font-size: 17px; font-weight: 700; color: #34c759; }
         .drink-rows { display: flex; flex-direction: column; gap: 8px; }
         .drink-row {
@@ -241,8 +243,7 @@
         <form id="loginBox" onsubmit="login(event)">
             <div class="card-title">🔐 Anmelden</div>
             <div class="form-row">
-                <input type="text" id="loginFirstNameInput" class="name-input" placeholder="Vorname" autocomplete="given-name" required>
-                <input type="text" id="loginLastNameInput" class="name-input" placeholder="Nachname" autocomplete="family-name" required>
+                <input type="text" id="loginUsernameInput" class="username-input" placeholder="Benutzername (z.B. neckermannju)" autocomplete="username" required>
                 <input type="password" maxlength="4" pattern="\d{4}" id="loginPinInput" placeholder="4-stellige PIN" autocomplete="current-password" inputmode="numeric" required>
                 <button type="submit" class="primary-btn">Einloggen</button>
             </div>
@@ -322,7 +323,7 @@
 </div>
 
 <script>
-    // 1. FIREBASE CONFIG
+    // FIREBASE CONFIG
     const firebaseConfig = {
       apiKey: "AIzaSyC_IpuPtm16j7OpMxga4_7s4aJ9wDLAZiE",
       authDomain: "bierliste-tvb.firebaseapp.com",
@@ -373,6 +374,14 @@
         }).join(' ');
     }
 
+    // Funktion zur Generierung des Benutzernamens: nachname + erste 2 Buchst. vorname
+    function generateUsername(firstName, lastName) {
+        var cleanFirst = firstName.trim().toLowerCase().replace(/[^a-zäöüß]/g, '');
+        var cleanLast = lastName.trim().toLowerCase().replace(/[^a-zäöüß]/g, '');
+        var firstTwo = cleanFirst.substring(0, 2);
+        return cleanLast + firstTwo;
+    }
+
     function showRegisterView() {
         document.getElementById('loginBox').style.display = 'none';
         document.getElementById('registerBox').style.display = 'block';
@@ -393,26 +402,34 @@
             return;
         }
 
+        var username = generateUsername(firstName, lastName);
         var fullName = firstName + ' ' + lastName;
-        var userKey = fullName.toLowerCase().replace(/\s+/g, '_');
 
-        if (users[userKey]) {
-            alert('Dieser Name ist bereits registriert.');
+        if (users[username]) {
+            alert('Der Benutzername "' + username + '" existiert bereits.');
             return;
         }
 
-        var newUser = { name: fullName, pin: pin, isAdmin: false };
-        users[userKey] = newUser;
-        db.ref('strichliste/users/' + userKey).set(newUser);
+        var isAdmin = (username === 'neckermannju');
 
-        var existingPerson = people.find(function(p) { return p.name.toLowerCase() === fullName.toLowerCase(); });
+        var newUser = { 
+            username: username,
+            name: fullName, 
+            pin: pin, 
+            isAdmin: isAdmin 
+        };
+
+        users[username] = newUser;
+        db.ref('strichliste/users/' + username).set(newUser);
+
+        var existingPerson = people.find(function(p) { return p.username === username; });
         if (!existingPerson) {
-            people.push({ id: 'p_' + Date.now(), name: fullName, drinks: {} });
+            people.push({ id: 'p_' + Date.now(), username: username, name: fullName, drinks: {} });
             db.ref('strichliste/people').set(people);
         }
 
-        addLogEntry('Neuer Benutzer registriert: ' + fullName, fullName);
-        alert('Registrierung erfolgreich!');
+        addLogEntry('Neuer Benutzer registriert: ' + fullName + ' (' + username + ')', fullName);
+        alert('Registrierung erfolgreich!\nDein Benutzername lautet: ' + username);
         
         currentUser = newUser;
         saveSession(currentUser);
@@ -421,20 +438,17 @@
 
     function login(event) {
         if (event) event.preventDefault();
-        var firstName = capitalizeName(document.getElementById('loginFirstNameInput').value);
-        var lastName = capitalizeName(document.getElementById('loginLastNameInput').value);
+        var usernameInput = document.getElementById('loginUsernameInput').value.trim().toLowerCase();
         var pinInput = document.getElementById('loginPinInput').value.trim();
 
-        var fullName = firstName + ' ' + lastName;
-        var userKey = fullName.toLowerCase().replace(/\s+/g, '_');
-        var user = users[userKey];
+        var user = users[usernameInput];
 
         if (user && user.pin === pinInput) {
             currentUser = user;
             saveSession(currentUser);
             initUserSession();
         } else {
-            alert('Name oder PIN falsch!');
+            alert('Benutzername oder PIN falsch!');
         }
     }
 
@@ -468,11 +482,11 @@
 
         var statusElem = document.getElementById('userStatusText');
         if (currentUser.isAdmin) {
-            statusElem.innerText = '🔑 Admin: ' + currentUser.name;
+            statusElem.innerText = '🔑 Admin: ' + currentUser.name + ' (' + currentUser.username + ')';
             statusElem.className = 'user-status admin';
             document.body.classList.add('is-admin');
         } else {
-            statusElem.innerText = '👤 Eingeloggt als: ' + currentUser.name;
+            statusElem.innerText = '👤 Eingeloggt als: ' + currentUser.name + ' (' + currentUser.username + ')';
             statusElem.className = 'user-status';
             document.body.classList.remove('is-admin');
         }
@@ -513,12 +527,12 @@
                 { id: 'b3', name: 'Alkoholfrei', price: 2.00 }
             ];
             people = [
-                { id: 'p_admin', name: 'Justus Neckermann', drinks: {} }
+                { id: 'p_admin', username: 'neckermannju', name: 'Justus Neckermann', drinks: {} }
             ];
             cashRegister = 0.00;
             logs = [];
             users = {};
-            users['justus_neckermann'] = { name: 'Justus Neckermann', pin: '0104', isAdmin: true };
+            users['neckermannju'] = { username: 'neckermannju', name: 'Justus Neckermann', pin: '0104', isAdmin: true };
             saveDataToCloud();
         }
 
@@ -652,7 +666,6 @@
         saveDataToCloud();
     }
 
-    // FIX: Direktes Löschen des Getränks in Firebase
     function deleteDrinkTypeById(drinkId) {
         if (!currentUser || !currentUser.isAdmin) return;
 
@@ -674,7 +687,6 @@
         }
     }
 
-    // FIX: Direktes Löschen der Person inkl. Benutzeraccount in Firebase
     function deletePersonById(personId) {
         if (!currentUser || !currentUser.isAdmin) return;
 
@@ -682,17 +694,16 @@
         if (!person) return;
 
         if (confirm('Möchtest du "' + person.name + '" wirklich komplett löschen?')) {
-            var removedName = person.name;
+            var username = person.username;
 
             people = people.filter(function(p) { return p.id !== personId; });
 
-            var userKey = removedName.toLowerCase().replace(/\s+/g, '_');
-            if (users[userKey]) {
-                delete users[userKey];
-                db.ref('strichliste/users/' + userKey).remove();
+            if (username && users[username]) {
+                delete users[username];
+                db.ref('strichliste/users/' + username).remove();
             }
 
-            addLogEntry('Person gelöscht: ' + removedName);
+            addLogEntry('Person gelöscht: ' + person.name + ' (' + username + ')');
             db.ref('strichliste/people').set(people);
         }
     }
@@ -777,7 +788,7 @@
         } else if (currentUser) {
             document.getElementById('lblTotalDrinks').innerText = "Meine Getränke";
             document.getElementById('lblTotalCost').innerText = "Mein offener Betrag";
-            var myPerson = people.find(function(p) { return p.name.toLowerCase() === currentUser.name.toLowerCase(); });
+            var myPerson = people.find(function(p) { return p.username === currentUser.username; });
             if (myPerson) {
                 totalMoney = getPersonCost(myPerson);
                 if (myPerson.drinks) {
@@ -815,7 +826,7 @@
             var p = people[i];
 
             if (currentUser && !currentUser.isAdmin) {
-                if (p.name.toLowerCase() !== currentUser.name.toLowerCase()) {
+                if (p.username !== currentUser.username) {
                     continue;
                 }
             }
@@ -850,9 +861,11 @@
                 '</div>';
             }
 
+            var usernameTag = p.username ? ' <span class="person-username">(@' + escapeHtml(p.username) + ')</span>' : '';
+
             card.innerHTML = 
                 '<div class="person-header">' +
-                    '<span class="person-name">' + escapeHtml(p.name) + '</span>' +
+                    '<div><span class="person-name">' + escapeHtml(p.name) + '</span>' + usernameTag + '</div>' +
                     '<span class="person-total-cost">' + personTotalCost.toFixed(2).replace('.', ',') + ' €</span>' +
                 '</div>' +
                 '<div class="drink-rows">' + drinkRowsHtml + '</div>' +

@@ -343,7 +343,6 @@
     var people = [];
     var logs = [];
 
-    // Hilfsfunktion: Konvertiert Firebase-Objekte oder Arrays sauber in ein JS-Array
     function firebaseDataToArray(data) {
         if (!data) return [];
         if (Array.isArray(data)) {
@@ -478,7 +477,6 @@
             document.body.classList.remove('is-admin');
         }
 
-        // Formulareditoren für den nächsten Login leeren
         document.querySelectorAll('input[type="text"], input[type="password"]').forEach(function(input) {
             input.value = '';
         });
@@ -654,13 +652,14 @@
         saveDataToCloud();
     }
 
+    // FIX: Direktes Löschen des Getränks in Firebase
     function deleteDrinkTypeById(drinkId) {
         if (!currentUser || !currentUser.isAdmin) return;
 
         var drink = drinkTypes.find(function(d) { return d.id === drinkId; });
         if (!drink) return;
 
-        if (confirm('Möchtest du "' + drink.name + '" wirklich löschen? (Offene Striche für dieses Getränk werden ebenfalls entfernt)')) {
+        if (confirm('Möchtest du "' + drink.name + '" wirklich löschen? (Offene Striche dafür werden entfernt)')) {
             drinkTypes = drinkTypes.filter(function(d) { return d.id !== drinkId; });
 
             for (var i = 0; i < people.length; i++) {
@@ -670,10 +669,12 @@
             }
 
             addLogEntry('Getränk gelöscht: ' + drink.name);
-            saveDataToCloud();
+            db.ref('strichliste/drinkTypes').set(drinkTypes);
+            db.ref('strichliste/people').set(people);
         }
     }
 
+    // FIX: Direktes Löschen der Person inkl. Benutzeraccount in Firebase
     function deletePersonById(personId) {
         if (!currentUser || !currentUser.isAdmin) return;
 
@@ -692,7 +693,7 @@
             }
 
             addLogEntry('Person gelöscht: ' + removedName);
-            saveDataToCloud();
+            db.ref('strichliste/people').set(people);
         }
     }
 
@@ -713,12 +714,14 @@
     function renderDrinkBadges() {
         var container = document.getElementById('drinkBadgeList');
         container.innerHTML = '';
+        var isAdmin = currentUser && currentUser.isAdmin;
+
         for (var i = 0; i < drinkTypes.length; i++) {
             var d = drinkTypes[i];
             var badge = document.createElement('div');
             badge.className = 'drink-badge';
             
-            var delBtn = (currentUser && currentUser.isAdmin) 
+            var delBtn = isAdmin 
                 ? '<span class="del-btn" onclick="deleteDrinkTypeById(\'' + d.id + '\')">✕</span>' 
                 : '';
                 
@@ -811,7 +814,6 @@
         for (var i = 0; i < people.length; i++) {
             var p = people[i];
 
-            // Normale Benutzer sehen nur sich selbst
             if (currentUser && !currentUser.isAdmin) {
                 if (p.name.toLowerCase() !== currentUser.name.toLowerCase()) {
                     continue;

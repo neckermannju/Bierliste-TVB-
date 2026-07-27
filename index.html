@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Getränke & Bier Strichliste 🍺</title>
     <style>
         * {
@@ -26,6 +26,8 @@
             display: flex;
             flex-direction: column;
             gap: 16px;
+            position: relative;
+            z-index: 1;
         }
         header {
             text-align: center;
@@ -46,6 +48,8 @@
             border-radius: 14px;
             padding: 16px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            position: relative;
+            z-index: 2;
         }
         .card-title {
             font-size: 16px;
@@ -70,10 +74,17 @@
             background-color: #f9f9fb;
             color: #1c1c1e;
             outline: none;
+            pointer-events: auto !important;
+            -webkit-appearance: none;
         }
         input:focus {
             border-color: #007aff;
             background-color: #fff;
+        }
+        button {
+            cursor: pointer;
+            touch-action: manipulation;
+            pointer-events: auto !important;
         }
         button.primary-btn {
             padding: 10px 14px;
@@ -83,7 +94,6 @@
             border-radius: 10px;
             font-size: 14px;
             font-weight: 600;
-            cursor: pointer;
             white-space: nowrap;
         }
         button.danger-btn {
@@ -94,7 +104,6 @@
             border-radius: 10px;
             font-size: 14px;
             font-weight: 600;
-            cursor: pointer;
             width: 100%;
         }
         .summary-card {
@@ -206,7 +215,6 @@
             border-radius: 8px;
             font-size: 18px;
             font-weight: bold;
-            cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -239,7 +247,6 @@
             padding: 6px 12px;
             border-radius: 8px;
             font-size: 12px;
-            cursor: pointer;
         }
         .admin-only-block {
             display: none;
@@ -283,7 +290,7 @@
         </div>
     </div>
 
-    <!-- Admin Aktionen (Abrechnung & Kassenbuchung) -->
+    <!-- Admin Aktionen -->
     <div class="card admin-only-block">
         <div class="card-title">⚡ Abrechnung & Kasse (Admin)</div>
         <button class="danger-btn" onclick="confirmCheckout()" style="margin-bottom: 12px;">
@@ -321,15 +328,13 @@
 </div>
 
 <script>
-    // STANDARD ADMIN PASSWORT
-    var ADMIN_PASSWORD = "190296";
+    var ADMIN_PASSWORD = "1234";
     var isAdmin = false;
-
     var cashRegister = 0.00;
 
     var drinkTypes = [
-        { id: 'b1', name: 'Bier', price: 1,5 },
-        { id: 'b2', name: 'Radler', price: 1.50 },
+        { id: 'b1', name: 'Bier', price: 2.50 },
+        { id: 'b2', name: 'Radler', price: 2.50 },
         { id: 'b3', name: 'Alkoholfrei', price: 2.00 }
     ];
 
@@ -338,6 +343,13 @@
         { id: 'p2', name: 'Erika Berger', drinks: {} }
     ];
 
+    function escapeHtml(text) {
+        if (!text) return '';
+        return String(text).replace(/[&<>"']/g, function(m) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
+        });
+    }
+
     try {
         var savedDrinks = localStorage.getItem('bierStrichliste_drinks');
         var savedPeople = localStorage.getItem('bierStrichliste_people');
@@ -345,17 +357,22 @@
         if (savedDrinks) drinkTypes = JSON.parse(savedDrinks);
         if (savedPeople) people = JSON.parse(savedPeople);
         if (savedCash !== null) cashRegister = parseFloat(savedCash);
-    } catch(e) {}
+    } catch(e) {
+        console.error("Fehler beim Laden aus LocalStorage", e);
+    }
 
     function saveData() {
         try {
             localStorage.setItem('bierStrichliste_drinks', JSON.stringify(drinkTypes));
             localStorage.setItem('bierStrichliste_people', JSON.stringify(people));
             localStorage.setItem('bierStrichliste_cash', cashRegister.toString());
-        } catch(e) {}
+        } catch(e) {
+            console.error("Fehler beim Speichern", e);
+        }
     }
 
     function getLastName(fullName) {
+        if (!fullName) return '';
         var parts = fullName.trim().split(/\s+/);
         return parts.length > 1 ? parts[parts.length - 1] : parts[0];
     }
@@ -415,6 +432,13 @@
         }
     }
 
+    function getDrinkById(id) {
+        for (var i = 0; i < drinkTypes.length; i++) {
+            if (drinkTypes[i].id === id) return drinkTypes[i];
+        }
+        return null;
+    }
+
     function getCurrentTotalCost() {
         var totalMoney = 0;
         for (var i = 0; i < people.length; i++) {
@@ -465,7 +489,7 @@
                 people[i].drinks = {};
             }
             renderAll();
-            alert('Abrechnung erfolgreich! Die Kasse wurde aktualisiert und die Striche zurückgesetzt.');
+            alert('Abrechnung erfolgreich!');
         }
     }
 
@@ -475,7 +499,7 @@
         var amount = parseFloat(input.value.replace(',', '.'));
 
         if (isNaN(amount) || amount === 0) {
-            alert('Bitte einen gültigen Betrag eingeben (z. B. 10 für Einnahme oder -5 für Ausgabe).');
+            alert('Bitte einen gültigen Betrag eingeben.');
             return;
         }
 
@@ -484,11 +508,14 @@
         renderAll();
     }
 
-    function getDrinkById(id) {
-        for (var i = 0; i < drinkTypes.length; i++) {
-            if (drinkTypes[i].id === id) return drinkTypes[i];
-        }
-        return null;
+    function formatTally(count) {
+        if (count === 0) return '0';
+        var fullGroups = Math.floor(count / 5);
+        var remainder = count % 5;
+        var res = '';
+        for (var g = 0; g < fullGroups; g++) res += '||||/ ';
+        for (var r = 0; r < remainder; r++) res += '|';
+        return res;
     }
 
     function renderPeople() {
@@ -552,16 +579,6 @@
         }
     }
 
-    function formatTally(count) {
-        if (count === 0) return '0';
-        var fullGroups = Math.floor(count / 5);
-        var remainder = count % 5;
-        var res = '';
-        for (var g = 0; g < fullGroups; g++) res += '||||/ ';
-        for (var r = 0; r < remainder; r++) res += '|';
-        return res;
-    }
-
     function addDrinkType() {
         if (!isAdmin) return;
         var nameInput = document.getElementById('drinkNameInput');
@@ -600,6 +617,9 @@
     }
 
     function changeCount(personIdx, drinkId, delta) {
+        if (!people[personIdx].drinks) {
+            people[personIdx].drinks = {};
+        }
         if (!people[personIdx].drinks[drinkId]) {
             people[personIdx].drinks[drinkId] = 0;
         }
@@ -616,12 +636,6 @@
             people.splice(index, 1);
             renderAll();
         }
-    }
-
-    function escapeHtml(text) {
-        return text.replace(/[&<>"']/g, function(m) {
-            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
-        });
     }
 
     renderAll();

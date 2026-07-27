@@ -128,7 +128,13 @@
             gap: 6px;
         }
         .drink-badge .price { font-weight: 600; color: #007aff; }
-        .drink-badge .del-btn { color: #ff3b30; font-weight: bold; cursor: pointer; margin-left: 4px; }
+        .drink-badge .del-btn { 
+            color: #ff3b30; 
+            font-weight: bold; 
+            cursor: pointer; 
+            margin-left: 6px;
+            padding: 0 4px;
+        }
         .person-card { display: flex; flex-direction: column; gap: 10px; border-left: 4px solid #007aff; }
         .person-header { display: flex; justify-content: space-between; align-items: center; }
         .person-name { font-size: 17px; font-weight: 700; }
@@ -228,34 +234,32 @@
         <div id="syncStatus" class="status-sync">🔄 Verbindung zu Firebase wird aufgebaut...</div>
     </header>
 
-    <!-- AUTHENTIFIZIERUNG: LOGIN / REGISTRIERUNG -->
+    <!-- AUTHENTIFIZIERUNG -->
     <div id="authContainer" class="card">
-        <!-- LOGIN FORMULAR -->
         <form id="loginBox" onsubmit="login(event)">
             <div class="card-title">🔐 Anmelden</div>
             <div class="form-row">
-                <input type="text" id="loginFirstNameInput" name="given-name" class="name-input" placeholder="Vorname" autocomplete="given-name" required>
-                <input type="text" id="loginLastNameInput" name="family-name" class="name-input" placeholder="Nachname" autocomplete="family-name" required>
-                <input type="password" maxlength="4" pattern="\d{4}" id="loginPinInput" name="password" placeholder="4-stellige PIN" autocomplete="current-password" inputmode="numeric" required>
+                <input type="text" id="loginFirstNameInput" class="name-input" placeholder="Vorname" autocomplete="given-name" required>
+                <input type="text" id="loginLastNameInput" class="name-input" placeholder="Nachname" autocomplete="family-name" required>
+                <input type="password" maxlength="4" pattern="\d{4}" id="loginPinInput" placeholder="4-stellige PIN" autocomplete="current-password" inputmode="numeric" required>
                 <button type="submit" class="primary-btn">Einloggen</button>
             </div>
             <div class="auth-toggle" onclick="showRegisterView()">Noch kein Konto? Hier registrieren</div>
         </form>
 
-        <!-- REGISTRIERUNGS FORMULAR -->
         <form id="registerBox" style="display: none;" onsubmit="register(event)">
             <div class="card-title">📝 Registrieren</div>
             <div class="form-row">
-                <input type="text" id="regFirstNameInput" name="given-name" class="name-input" placeholder="Vorname" autocomplete="given-name" required>
-                <input type="text" id="regLastNameInput" name="family-name" class="name-input" placeholder="Nachname" autocomplete="family-name" required>
-                <input type="password" maxlength="4" pattern="\d{4}" id="regPinInput" name="password" placeholder="4-stellige PIN ausdenken" autocomplete="new-password" inputmode="numeric" required>
+                <input type="text" id="regFirstNameInput" class="name-input" placeholder="Vorname" autocomplete="given-name" required>
+                <input type="text" id="regLastNameInput" class="name-input" placeholder="Nachname" autocomplete="family-name" required>
+                <input type="password" maxlength="4" pattern="\d{4}" id="regPinInput" placeholder="4-stellige PIN ausdenken" autocomplete="new-password" inputmode="numeric" required>
                 <button type="submit" class="primary-btn">Konto erstellen & Anmelden</button>
             </div>
             <div class="auth-toggle" onclick="showLoginView()">Bereits registriert? Zum Login</div>
         </form>
     </div>
 
-    <!-- HAUPT-APP (Wird erst nach Login sichtbar) -->
+    <!-- HAUPT-APP -->
     <div id="appContainer" style="display: none;" class="container">
         
         <div class="user-bar card">
@@ -263,7 +267,6 @@
             <button class="admin-btn" onclick="logout()">Abmelden</button>
         </div>
 
-        <!-- Normale Summary (Getränke / Offener Betrag) -->
         <div class="card summary-card">
             <div class="summary-item">
                 <div class="num" id="totalDrinks">0</div>
@@ -275,7 +278,6 @@
             </div>
         </div>
 
-        <!-- Virtuelle Kasse NUR für Admin -->
         <div class="card cash-card">
             <div class="summary-item">
                 <div class="lbl" style="opacity: 0.9;">💰 Virtuelle Kasse (Bestand)</div>
@@ -283,15 +285,12 @@
             </div>
         </div>
 
-        <!-- Admin-Protokoll / Historie -->
         <div class="card admin-only-block">
             <div class="card-title">
-                <span>📜 Aktivitäten-Protokoll (Logfiles)</span>
+                <span>📜 Aktivitäten-Protokoll</span>
                 <button class="admin-btn" onclick="clearLogs()" style="color:#ff3b30; border-color:#ff3b30;">Protokoll leeren</button>
             </div>
-            <div id="logList" class="log-list">
-                <div style="color:#8e8e93; font-size:12px; text-align:center;">Lade Protokoll...</div>
-            </div>
+            <div id="logList" class="log-list"></div>
         </div>
 
         <div class="card admin-only-block">
@@ -299,7 +298,7 @@
             <button class="danger-btn" onclick="confirmCheckoutAll()" style="margin-bottom: 12px;">
                 ✅ ALLE Personen abrechnen & Striche nullen
             </button>
-            <div style="font-size: 12px; color: #8e8e93; margin-bottom: 8px;">Manuelle Kassenbuchung (Einnahme/Ausgabe):</div>
+            <div style="font-size: 12px; color: #8e8e93; margin-bottom: 8px;">Manuelle Kassenbuchung:</div>
             <div class="form-row-inline">
                 <input type="number" step="0.50" id="cashAdjustmentInput" placeholder="Betrag € (z.B. 10 oder -5)">
                 <button class="success-btn" onclick="adjustCash()">Buchen</button>
@@ -321,9 +320,7 @@
 </div>
 
 <script>
-    // =========================================================================
-    // 1. FIREBASE ZUGANGSDATEN:
-    // =========================================================================
+    // 1. FIREBASE CONFIG
     const firebaseConfig = {
       apiKey: "AIzaSyC_IpuPtm16j7OpMxga4_7s4aJ9wDLAZiE",
       authDomain: "bierliste-tvb.firebaseapp.com",
@@ -337,7 +334,6 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // System-Variablen
     var currentUser = null; 
     var users = {}; 
     var cashRegister = 0.00;
@@ -368,10 +364,8 @@
         document.getElementById('loginBox').style.display = 'block';
     }
 
-    // Registrierung
     function register(event) {
         if (event) event.preventDefault();
-
         var firstName = capitalizeName(document.getElementById('regFirstNameInput').value);
         var lastName = capitalizeName(document.getElementById('regLastNameInput').value);
         var pin = document.getElementById('regPinInput').value.trim();
@@ -385,7 +379,7 @@
         var userKey = fullName.toLowerCase().replace(/\s+/g, '_');
 
         if (users[userKey]) {
-            alert('Dieser Name ist bereits registriert. Bitte logge dich ein.');
+            alert('Dieser Name ist bereits registriert.');
             return;
         }
 
@@ -400,29 +394,21 @@
         }
 
         addLogEntry('Neuer Benutzer registriert: ' + fullName, fullName);
-        alert('Registrierung erfolgreich! Du wirst jetzt eingeloggt.');
+        alert('Registrierung erfolgreich!');
         
         currentUser = newUser;
         saveSession(currentUser);
         initUserSession();
     }
 
-    // Login
     function login(event) {
         if (event) event.preventDefault();
-
         var firstName = capitalizeName(document.getElementById('loginFirstNameInput').value);
         var lastName = capitalizeName(document.getElementById('loginLastNameInput').value);
         var pinInput = document.getElementById('loginPinInput').value.trim();
 
-        if (!firstName || !lastName || !pinInput) {
-            alert('Bitte Vorname, Nachname und PIN eingeben.');
-            return;
-        }
-
         var fullName = firstName + ' ' + lastName;
 
-        // Admin Spezial-Login
         if (fullName.toLowerCase() === 'justus neckermann' && pinInput === '0104') {
             currentUser = { name: 'Justus Neckermann', pin: '0104', isAdmin: true };
             saveSession(currentUser);
@@ -485,17 +471,15 @@
 
     function addLogEntry(message, actorOverride) {
         var now = new Date();
-        var timeStr = now.toLocaleDateString('de-DE') + ' ' + now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        var timeStr = now.toLocaleDateString('de-DE') + ' ' + now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
         var actor = actorOverride || (currentUser ? currentUser.name + (currentUser.isAdmin ? ' (Admin)' : '') : 'System');
 
         var logObj = { text: actor + ': ' + message, time: timeStr };
-
         logs.unshift(logObj);
-        if (logs.length > 150) logs.pop();
+        if (logs.length > 100) logs.pop();
         db.ref('strichliste/logs').set(logs);
     }
 
-    // Firebase Live Sync
     db.ref('strichliste').on('value', function(snapshot) {
         var data = snapshot.val();
         document.getElementById('syncStatus').innerText = "🟢 Live synchronisiert";
@@ -522,12 +506,6 @@
             saveDataToCloud();
         }
 
-        var adminPersonExists = people.some(function(p) { return p.name.toLowerCase() === 'justus neckermann'; });
-        if (!adminPersonExists) {
-            people.push({ id: 'p_admin', name: 'Justus Neckermann', drinks: {} });
-            db.ref('strichliste/people').set(people);
-        }
-
         if (!currentUser) restoreSession();
         if (currentUser) renderUIOnly();
     });
@@ -551,42 +529,39 @@
     function renderLogs() {
         var container = document.getElementById('logList');
         container.innerHTML = '';
-
         if (logs.length === 0) {
-            container.innerHTML = '<div style="color:#8e8e93; font-size:12px; text-align:center;">Noch keine Protokolleinträge.</div>';
+            container.innerHTML = '<div style="color:#8e8e93; font-size:12px; text-align:center;">Keine Einträge.</div>';
             return;
         }
-
         for (var i = 0; i < logs.length; i++) {
-            var l = logs[i];
             var div = document.createElement('div');
             div.className = 'log-item';
-            div.innerHTML = '<span>' + escapeHtml(l.text) + '</span>' +
-                            '<span class="log-time">' + escapeHtml(l.time) + '</span>';
+            div.innerHTML = '<span>' + escapeHtml(logs[i].text) + '</span><span class="log-time">' + escapeHtml(logs[i].time) + '</span>';
             container.appendChild(div);
         }
     }
 
     function clearLogs() {
         if (!currentUser || !currentUser.isAdmin) return;
-        if (confirm('Möchtest du das gesamte Aktivitäts-Protokoll löschen?')) {
+        if (confirm('Aktivitäts-Protokoll löschen?')) {
             logs = [];
             db.ref('strichliste/logs').set([]);
         }
     }
 
-    function changeCount(personIdx, drinkId, delta) {
-        if (!people[personIdx].drinks) people[personIdx].drinks = {};
-        if (!people[personIdx].drinks[drinkId]) people[personIdx].drinks[drinkId] = 0;
+    function changeCount(personId, drinkId, delta) {
+        var person = people.find(function(p) { return p.id === personId; });
+        if (!person) return;
 
-        var newCount = people[personIdx].drinks[drinkId] + delta;
+        if (!person.drinks) person.drinks = {};
+        if (!person.drinks[drinkId]) person.drinks[drinkId] = 0;
+
+        var newCount = person.drinks[drinkId] + delta;
         if (newCount >= 0) {
-            people[personIdx].drinks[drinkId] = newCount;
+            person.drinks[drinkId] = newCount;
             var drink = getDrinkById(drinkId);
             var drinkName = drink ? drink.name : 'Getränk';
-            var actionStr = delta > 0 ? '+1' : '-1';
-
-            addLogEntry(actionStr + ' ' + drinkName + ' bei ' + people[personIdx].name);
+            addLogEntry((delta > 0 ? '+1 ' : '-1 ') + drinkName + ' bei ' + person.name);
             saveDataToCloud();
         }
     }
@@ -596,37 +571,36 @@
         var currentTotal = getCurrentTotalCost();
 
         if (currentTotal === 0) {
-            alert('Es gibt aktuell keine offenen Striche zum Abrechnen.');
+            alert('Keine offenen Striche.');
             return;
         }
 
-        if (confirm('Möchtest du ALLE Personen abrechnen?\n\nBetrag: ' + currentTotal.toFixed(2).replace('.', ',') + ' €')) {
+        if (confirm('ALLE Personen abrechnen?\nGesamt: ' + currentTotal.toFixed(2).replace('.', ',') + ' €')) {
             cashRegister += currentTotal;
             for (var i = 0; i < people.length; i++) {
                 people[i].drinks = {};
             }
-            addLogEntry('Gesamtabrechnung durchgeführt: ' + currentTotal.toFixed(2).replace('.', ',') + ' € verbucht.');
+            addLogEntry('Gesamtabrechnung: ' + currentTotal.toFixed(2).replace('.', ',') + ' € verbucht.');
             saveDataToCloud();
-            alert('Abrechnung erfolgreich!');
         }
     }
 
-    function checkoutPerson(personIdx) {
+    function checkoutPerson(personId) {
         if (!currentUser || !currentUser.isAdmin) return;
-        var p = people[personIdx];
-        var cost = getPersonCost(p);
+        var p = people.find(function(item) { return item.id === personId; });
+        if (!p) return;
 
+        var cost = getPersonCost(p);
         if (cost === 0) {
             alert(p.name + ' hat keine offenen Striche.');
             return;
         }
 
-        if (confirm(p.name + ' abrechnen?\n\nBetrag: ' + cost.toFixed(2).replace('.', ',') + ' €')) {
+        if (confirm(p.name + ' abrechnen?\nBetrag: ' + cost.toFixed(2).replace('.', ',') + ' €')) {
             cashRegister += cost;
             p.drinks = {};
-            addLogEntry('Einzelabrechnung für ' + p.name + ': ' + cost.toFixed(2).replace('.', ',') + ' € verbucht.');
+            addLogEntry('Abrechnung für ' + p.name + ': ' + cost.toFixed(2).replace('.', ',') + ' €');
             saveDataToCloud();
-            alert('Einzelabrechnung für ' + p.name + ' abgeschlossen!');
         }
     }
 
@@ -635,13 +609,10 @@
         var input = document.getElementById('cashAdjustmentInput');
         var amount = parseFloat(input.value.replace(',', '.'));
 
-        if (isNaN(amount) || amount === 0) {
-            alert('Bitte einen gültigen Betrag eingeben.');
-            return;
-        }
+        if (isNaN(amount) || amount === 0) return;
 
         cashRegister += amount;
-        addLogEntry('Manuelle Kassenbuchung: ' + (amount > 0 ? '+' : '') + amount.toFixed(2).replace('.', ',') + ' €');
+        addLogEntry('Kassenbuchung: ' + (amount > 0 ? '+' : '') + amount.toFixed(2).replace('.', ',') + ' €');
         input.value = '';
         saveDataToCloud();
     }
@@ -654,36 +625,48 @@
         var price = parseFloat(priceInput.value.replace(',', '.'));
 
         if (!name || isNaN(price) || price < 0) {
-            alert('Bitte gültigen Namen und Preis eingeben.');
+            alert('Bitte Name und Preis eingeben.');
             return;
         }
 
         drinkTypes.push({ id: 'd_' + Date.now(), name: name, price: price });
-        addLogEntry('Neues Getränk hinzugefügt: ' + name + ' (' + price.toFixed(2).replace('.', ',') + ' €)');
+        addLogEntry('Neues Getränk: ' + name + ' (' + price.toFixed(2).replace('.', ',') + ' €)');
         nameInput.value = '';
         priceInput.value = '';
         saveDataToCloud();
     }
 
-    function deleteDrinkType(index) {
+    // GETRÄNK LÖSCHEN QÜER ID (KORRIGIERT)
+    function deleteDrinkTypeById(drinkId) {
         if (!currentUser || !currentUser.isAdmin) return;
-        if (confirm('Getränk wirklich entfernen?')) {
-            var removedName = drinkTypes[index].name;
-            drinkTypes.splice(index, 1);
-            addLogEntry('Getränk entfernt: ' + removedName);
+
+        var drink = drinkTypes.find(function(d) { return d.id === drinkId; });
+        if (!drink) return;
+
+        if (confirm('Möchtest du "' + drink.name + '" wirklich löschen?')) {
+            drinkTypes = drinkTypes.filter(function(d) { return d.id !== drinkId; });
+            addLogEntry('Getränk gelöscht: ' + drink.name);
             saveDataToCloud();
         }
     }
 
+    // PERSON LÖSCHEN ÜBER ID (KORRIGIERT)
     function deletePersonById(personId) {
         if (!currentUser || !currentUser.isAdmin) return;
 
         var person = people.find(function(p) { return p.id === personId; });
         if (!person) return;
 
-        if (confirm(person.name + ' wirklich löschen?')) {
+        if (confirm('Möchtest du "' + person.name + '" wirklich komplett löschen?')) {
             var removedName = person.name;
             people = people.filter(function(p) { return p.id !== personId; });
+
+            // Auch aus den registrierten Usern entfernen
+            var userKey = removedName.toLowerCase().replace(/\s+/g, '_');
+            if (users[userKey]) {
+                delete users[userKey];
+            }
+
             addLogEntry('Person gelöscht: ' + removedName);
             saveDataToCloud();
         }
@@ -707,15 +690,17 @@
         var container = document.getElementById('drinkBadgeList');
         container.innerHTML = '';
         for (var i = 0; i < drinkTypes.length; i++) {
-            (function(index) {
-                var d = drinkTypes[index];
-                var badge = document.createElement('div');
-                badge.className = 'drink-badge';
-                var delBtn = (currentUser && currentUser.isAdmin) ? '<span class="del-btn" onclick="deleteDrinkType(' + index + ')">✕</span>' : '';
-                badge.innerHTML = '<span>' + escapeHtml(d.name) + '</span>' +
-                                  '<span class="price">' + d.price.toFixed(2).replace('.', ',') + ' €</span>' + delBtn;
-                container.appendChild(badge);
-            })(i);
+            var d = drinkTypes[i];
+            var badge = document.createElement('div');
+            badge.className = 'drink-badge';
+            
+            var delBtn = (currentUser && currentUser.isAdmin) 
+                ? '<span class="del-btn" onclick="deleteDrinkTypeById(\'' + d.id + '\')">✕</span>' 
+                : '';
+                
+            badge.innerHTML = '<span>' + escapeHtml(d.name) + '</span>' +
+                              '<span class="price">' + d.price.toFixed(2).replace('.', ',') + ' €</span>' + delBtn;
+            container.appendChild(badge);
         }
     }
 
@@ -795,61 +780,56 @@
         container.innerHTML = '';
 
         if (people.length === 0) {
-            container.innerHTML = '<div class="card" style="text-align:center; color:#8e8e93;">Noch keine Personen registriert.</div>';
+            container.innerHTML = '<div class="card" style="text-align:center; color:#8e8e93;">Keine Personen vorhanden.</div>';
             return;
         }
 
         for (var i = 0; i < people.length; i++) {
             var p = people[i];
 
-            // NUR EIGENE STRICHE ANZEIGEN (wenn kein Admin)
             if (currentUser && !currentUser.isAdmin) {
                 if (p.name.toLowerCase() !== currentUser.name.toLowerCase()) {
                     continue;
                 }
             }
 
-            (function(pIdx) {
-                var personObj = people[pIdx];
-                var card = document.createElement('div');
-                card.className = 'card person-card';
+            var card = document.createElement('div');
+            card.className = 'card person-card';
+            var personTotalCost = getPersonCost(p);
 
-                var personTotalCost = getPersonCost(personObj);
+            var drinkRowsHtml = '';
+            for (var d = 0; d < drinkTypes.length; d++) {
+                var drink = drinkTypes[d];
+                var cnt = (p.drinks && p.drinks[drink.id]) ? p.drinks[drink.id] : 0;
 
-                var drinkRowsHtml = '';
-                for (var d = 0; d < drinkTypes.length; d++) {
-                    var drink = drinkTypes[d];
-                    var cnt = (personObj.drinks && personObj.drinks[drink.id]) ? personObj.drinks[drink.id] : 0;
+                drinkRowsHtml += '<div class="drink-row">' +
+                    '<div class="drink-info">' +
+                        '<span class="drink-name">' + escapeHtml(drink.name) + ' (' + drink.price.toFixed(2).replace('.', ',') + ' €)</span>' +
+                        '<span class="drink-tally">' + formatTally(cnt) + '</span>' +
+                    '</div>' +
+                    '<div class="btn-group">' +
+                        '<button class="btn-sm minus" onclick="changeCount(\'' + p.id + '\', \'' + drink.id + '\', -1)">-</button>' +
+                        '<span class="count-val">' + cnt + '</span>' +
+                        '<button class="btn-sm plus" onclick="changeCount(\'' + p.id + '\', \'' + drink.id + '\', 1)">+</button>' +
+                    '</div>' +
+                '</div>';
+            }
 
-                    drinkRowsHtml += '<div class="drink-row">' +
-                        '<div class="drink-info">' +
-                            '<span class="drink-name">' + escapeHtml(drink.name) + ' (' + drink.price.toFixed(2).replace('.', ',') + ' €)</span>' +
-                            '<span class="drink-tally">' + formatTally(cnt) + '</span>' +
-                        '</div>' +
-                        '<div class="btn-group">' +
-                            '<button class="btn-sm minus" onclick="changeCount(' + pIdx + ', \'' + drink.id + '\', -1)">-</button>' +
-                            '<span class="count-val">' + cnt + '</span>' +
-                            '<button class="btn-sm plus" onclick="changeCount(' + pIdx + ', \'' + drink.id + '\', 1)">+</button>' +
-                        '</div>' +
-                    '</div>';
-                }
+            var adminActionsHtml = '';
+            if (currentUser && currentUser.isAdmin) {
+                adminActionsHtml = '<div class="person-actions">' +
+                    '<button class="checkout-single-btn" onclick="checkoutPerson(\'' + p.id + '\')">Abrechnen (' + personTotalCost.toFixed(2).replace('.', ',') + ' €)</button>' +
+                    '<button class="admin-btn" style="color:#ff3b30; border-color:#ff3b30;" onclick="deletePersonById(\'' + p.id + '\')">Löschen</button>' +
+                '</div>';
+            }
 
-                var adminActionsHtml = '';
-                if (currentUser && currentUser.isAdmin) {
-                    adminActionsHtml = '<div class="person-actions">' +
-                        '<button class="checkout-single-btn" onclick="checkoutPerson(' + pIdx + ')">Abrechnen (' + personTotalCost.toFixed(2).replace('.', ',') + ' €)</button>' +
-                        '<button class="admin-btn" style="color:#ff3b30; border-color:#ff3b30;" onclick="deletePersonById(\'' + personObj.id + '\')">Löschen</button>' +
-                    '</div>';
-                }
+            card.innerHTML = '<div class="person-header">' +
+                '<span class="person-name">' + escapeHtml(p.name) + '</span>' +
+                '<span class="person-total-cost">' + personTotalCost.toFixed(2).replace('.', ',') + ' €</span>' +
+            '</div>' +
+            '<div class="drink-rows">' + drinkRowsHtml + '</div>' + adminActionsHtml;
 
-                card.innerHTML = '<div class="person-header">' +
-                    '<span class="person-name">' + escapeHtml(personObj.name) + '</span>' +
-                    '<span class="person-total-cost">' + personTotalCost.toFixed(2).replace('.', ',') + ' €</span>' +
-                '</div>' +
-                '<div class="drink-rows">' + drinkRowsHtml + '</div>' + adminActionsHtml;
-
-                container.appendChild(card);
-            })(i);
+            container.appendChild(card);
         }
     }
 </script>

@@ -59,9 +59,7 @@
             outline: none;
             -webkit-appearance: none;
         }
-        input.name-input {
-            text-transform: capitalize;
-        }
+        input.name-input { text-transform: capitalize; }
         input:focus { border-color: #007aff; background-color: #fff; }
         button { cursor: pointer; touch-action: manipulation; }
         button.primary-btn {
@@ -114,6 +112,7 @@
             color: white;
             text-align: center;
             padding: 14px;
+            display: none; /* Standardmäßig für alle aus */
         }
         .summary-item .num { font-size: 20px; font-weight: 700; margin-bottom: 2px; }
         .summary-item .lbl { font-size: 11px; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -179,8 +178,9 @@
             border-radius: 8px;
             font-size: 12px;
         }
-        .admin-only-block { display: none; }
+        .admin-only-block { display: none !important; }
         body.is-admin .admin-only-block { display: block !important; }
+        body.is-admin .cash-card { display: block !important; }
         .person-actions {
             display: flex;
             justify-content: space-between;
@@ -230,27 +230,29 @@
 
     <!-- AUTHENTIFIZIERUNG: LOGIN / REGISTRIERUNG -->
     <div id="authContainer" class="card">
-        <div id="loginBox">
+        <!-- LOGIN FORMULAR -->
+        <form id="loginBox" onsubmit="login(event)">
             <div class="card-title">🔐 Anmelden</div>
             <div class="form-row">
-                <input type="text" id="loginFirstNameInput" class="name-input" placeholder="Vorname">
-                <input type="text" id="loginLastNameInput" class="name-input" placeholder="Nachname">
-                <input type="password" maxlength="4" pattern="\d{4}" id="loginPinInput" placeholder="4-stellige PIN">
-                <button class="primary-btn" onclick="login()">Einloggen</button>
+                <input type="text" id="loginFirstNameInput" name="given-name" class="name-input" placeholder="Vorname" autocomplete="given-name" required>
+                <input type="text" id="loginLastNameInput" name="family-name" class="name-input" placeholder="Nachname" autocomplete="family-name" required>
+                <input type="password" maxlength="4" pattern="\d{4}" id="loginPinInput" name="password" placeholder="4-stellige PIN" autocomplete="current-password" inputmode="numeric" required>
+                <button type="submit" class="primary-btn">Einloggen</button>
             </div>
             <div class="auth-toggle" onclick="showRegisterView()">Noch kein Konto? Hier registrieren</div>
-        </div>
+        </form>
 
-        <div id="registerBox" style="display: none;">
+        <!-- REGISTRIERUNGS FORMULAR -->
+        <form id="registerBox" style="display: none;" onsubmit="register(event)">
             <div class="card-title">📝 Registrieren</div>
             <div class="form-row">
-                <input type="text" id="regFirstNameInput" class="name-input" placeholder="Vorname">
-                <input type="text" id="regLastNameInput" class="name-input" placeholder="Nachname">
-                <input type="password" maxlength="4" pattern="\d{4}" id="regPinInput" placeholder="4-stellige PIN ausdenken">
-                <button class="primary-btn" onclick="register()">Konto erstellen & Anmelden</button>
+                <input type="text" id="regFirstNameInput" name="given-name" class="name-input" placeholder="Vorname" autocomplete="given-name" required>
+                <input type="text" id="regLastNameInput" name="family-name" class="name-input" placeholder="Nachname" autocomplete="family-name" required>
+                <input type="password" maxlength="4" pattern="\d{4}" id="regPinInput" name="password" placeholder="4-stellige PIN ausdenken" autocomplete="new-password" inputmode="numeric" required>
+                <button type="submit" class="primary-btn">Konto erstellen & Anmelden</button>
             </div>
             <div class="auth-toggle" onclick="showLoginView()">Bereits registriert? Zum Login</div>
-        </div>
+        </form>
     </div>
 
     <!-- HAUPT-APP (Wird erst nach Login sichtbar) -->
@@ -261,18 +263,20 @@
             <button class="admin-btn" onclick="logout()">Abmelden</button>
         </div>
 
+        <!-- Normale Summary (Getränke / Offener Betrag) -->
         <div class="card summary-card">
             <div class="summary-item">
                 <div class="num" id="totalDrinks">0</div>
-                <div class="lbl">Getränke offen</div>
+                <div class="lbl" id="lblTotalDrinks">Getränke offen</div>
             </div>
             <div class="summary-item">
                 <div class="num" id="totalCost">0,00 €</div>
-                <div class="lbl">Offener Betrag</div>
+                <div class="lbl" id="lblTotalCost">Offener Betrag</div>
             </div>
         </div>
 
-        <div class="card cash-card admin-only-block">
+        <!-- Nichts sichtbar für normale User: Virtuelle Kasse NUR für Admin -->
+        <div class="card cash-card">
             <div class="summary-item">
                 <div class="lbl" style="opacity: 0.9;">💰 Virtuelle Kasse (Bestand)</div>
                 <div class="num" id="cashBalance" style="font-size: 26px; margin-top: 4px;">0,00 €</div>
@@ -329,11 +333,12 @@ const firebaseConfig = {
   messagingSenderId: "203383350718",
   appId: "1:203383350718:web:f9b2de01d99e5c4588c5ef"
 };
+
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
     // System-Variablen
-    var currentUser = null; // Spec: { name: "", pin: "", isAdmin: false }
+    var currentUser = null; 
     var users = {}; 
     var cashRegister = 0.00;
     var drinkTypes = [];
@@ -347,7 +352,6 @@ const firebaseConfig = {
         });
     }
 
-    // Hilfsfunktion: Wandelt Namen automatisch in "Erster Buchstabe groß, Rest klein" um
     function capitalizeName(str) {
         if (!str) return '';
         return str.trim().split(/\s+/).map(function(word) {
@@ -355,7 +359,6 @@ const firebaseConfig = {
         }).join(' ');
     }
 
-    // Auth Views umschalten
     function showRegisterView() {
         document.getElementById('loginBox').style.display = 'none';
         document.getElementById('registerBox').style.display = 'block';
@@ -366,7 +369,9 @@ const firebaseConfig = {
     }
 
     // Registrierung
-    function register() {
+    function register(event) {
+        if (event) event.preventDefault();
+
         var firstName = capitalizeName(document.getElementById('regFirstNameInput').value);
         var lastName = capitalizeName(document.getElementById('regLastNameInput').value);
         var pin = document.getElementById('regPinInput').value.trim();
@@ -384,11 +389,9 @@ const firebaseConfig = {
             return;
         }
 
-        // Benutzer speichern
         var newUser = { name: fullName, pin: pin, isAdmin: false };
         db.ref('strichliste/users/' + userKey).set(newUser);
 
-        // Person automatisch zur Strichliste hinzufügen
         var existingPerson = people.find(function(p) { return p.name.toLowerCase() === fullName.toLowerCase(); });
         if (!existingPerson) {
             people.push({ id: 'p_' + Date.now(), name: fullName, drinks: {} });
@@ -399,11 +402,14 @@ const firebaseConfig = {
         alert('Registrierung erfolgreich! Du wirst jetzt eingeloggt.');
         
         currentUser = newUser;
+        saveSession(currentUser);
         initUserSession();
     }
 
     // Login
-    function login() {
+    function login(event) {
+        if (event) event.preventDefault();
+
         var firstName = capitalizeName(document.getElementById('loginFirstNameInput').value);
         var lastName = capitalizeName(document.getElementById('loginLastNameInput').value);
         var pinInput = document.getElementById('loginPinInput').value.trim();
@@ -415,9 +421,10 @@ const firebaseConfig = {
 
         var fullName = firstName + ' ' + lastName;
 
-        // Admin Prüfung: Justus Neckermann / 0104
+        // Admin Spezial-Login
         if (fullName.toLowerCase() === 'justus neckermann' && pinInput === '0104') {
             currentUser = { name: 'Justus Neckermann', pin: '0104', isAdmin: true };
+            saveSession(currentUser);
             initUserSession();
             return;
         }
@@ -427,14 +434,32 @@ const firebaseConfig = {
 
         if (user && user.pin === pinInput) {
             currentUser = user;
+            saveSession(currentUser);
             initUserSession();
         } else {
             alert('Name oder PIN falsch!');
         }
     }
 
+    function saveSession(user) {
+        sessionStorage.setItem('strichliste_user', JSON.stringify(user));
+    }
+
+    function restoreSession() {
+        var savedUser = sessionStorage.getItem('strichliste_user');
+        if (savedUser) {
+            try {
+                currentUser = JSON.parse(savedUser);
+                initUserSession();
+            } catch (e) {
+                sessionStorage.removeItem('strichliste_user');
+            }
+        }
+    }
+
     function logout() {
         currentUser = null;
+        sessionStorage.removeItem('strichliste_user');
         document.getElementById('authContainer').style.display = 'block';
         document.getElementById('appContainer').style.display = 'none';
         document.body.classList.remove('is-admin');
@@ -457,16 +482,12 @@ const firebaseConfig = {
         renderUIOnly();
     }
 
-    // Log-Eintrag erstellen
     function addLogEntry(message, actorOverride) {
         var now = new Date();
         var timeStr = now.toLocaleDateString('de-DE') + ' ' + now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         var actor = actorOverride || (currentUser ? currentUser.name + (currentUser.isAdmin ? ' (Admin)' : '') : 'System');
 
-        var logObj = {
-            text: actor + ': ' + message,
-            time: timeStr
-        };
+        var logObj = { text: actor + ': ' + message, time: timeStr };
 
         logs.unshift(logObj);
         if (logs.length > 150) logs.pop();
@@ -490,15 +511,23 @@ const firebaseConfig = {
                 { id: 'b2', name: 'Radler', price: 2.50 },
                 { id: 'b3', name: 'Alkoholfrei', price: 2.00 }
             ];
-            people = [];
+            people = [
+                { id: 'p_admin', name: 'Justus Neckermann', drinks: {} }
+            ];
             cashRegister = 0.00;
             logs = [];
             users = {};
-            // Standard Admin Justus Neckermann in DB anlegen
             users['justus_neckermann'] = { name: 'Justus Neckermann', pin: '0104', isAdmin: true };
             saveDataToCloud();
         }
 
+        var adminPersonExists = people.some(function(p) { return p.name.toLowerCase() === 'justus neckermann'; });
+        if (!adminPersonExists) {
+            people.push({ id: 'p_admin', name: 'Justus Neckermann', drinks: {} });
+            db.ref('strichliste/people').set(people);
+        }
+
+        if (!currentUser) restoreSession();
         if (currentUser) renderUIOnly();
     });
 
@@ -713,20 +742,39 @@ const firebaseConfig = {
 
     function renderSummary() {
         var totalCount = 0;
-        var totalMoney = getCurrentTotalCost();
+        var totalMoney = 0;
 
-        for (var i = 0; i < people.length; i++) {
-            var p = people[i];
-            if(p.drinks) {
-                for (var dId in p.drinks) {
-                    totalCount += (p.drinks[dId] || 0);
+        if (currentUser && currentUser.isAdmin) {
+            // Admin sieht Gesamtsummen & Kassenbestand
+            document.getElementById('lblTotalDrinks').innerText = "Getränke offen (Alle)";
+            document.getElementById('lblTotalCost').innerText = "Offener Betrag (Alle)";
+            totalMoney = getCurrentTotalCost();
+            for (var i = 0; i < people.length; i++) {
+                var p = people[i];
+                if(p.drinks) {
+                    for (var dId in p.drinks) {
+                        totalCount += (p.drinks[dId] || 0);
+                    }
+                }
+            }
+            document.getElementById('cashBalance').innerText = cashRegister.toFixed(2).replace('.', ',') + ' €';
+        } else if (currentUser) {
+            // Normale Nutzer sehen nur ihre eigenen Getränke/Kosten
+            document.getElementById('lblTotalDrinks').innerText = "Meine Getränke";
+            document.getElementById('lblTotalCost').innerText = "Mein offener Betrag";
+            var myPerson = people.find(function(p) { return p.name.toLowerCase() === currentUser.name.toLowerCase(); });
+            if (myPerson) {
+                totalMoney = getPersonCost(myPerson);
+                if (myPerson.drinks) {
+                    for (var dId in myPerson.drinks) {
+                        totalCount += (myPerson.drinks[dId] || 0);
+                    }
                 }
             }
         }
 
         document.getElementById('totalDrinks').innerText = totalCount;
         document.getElementById('totalCost').innerText = totalMoney.toFixed(2).replace('.', ',') + ' €';
-        document.getElementById('cashBalance').innerText = cashRegister.toFixed(2).replace('.', ',') + ' €';
     }
 
     function formatTally(count) {
@@ -749,17 +797,26 @@ const firebaseConfig = {
         }
 
         for (var i = 0; i < people.length; i++) {
+            var p = people[i];
+
+            // NUR EIGENE STRICHE ANZEIGEN (wenn kein Admin)
+            if (currentUser && !currentUser.isAdmin) {
+                if (p.name.toLowerCase() !== currentUser.name.toLowerCase()) {
+                    continue; // Andere Personen überspringen
+                }
+            }
+
             (function(pIdx) {
-                var p = people[pIdx];
+                var personObj = people[pIdx];
                 var card = document.createElement('div');
                 card.className = 'card person-card';
 
-                var personTotalCost = getPersonCost(p);
+                var personTotalCost = getPersonCost(personObj);
 
                 var drinkRowsHtml = '';
                 for (var d = 0; d < drinkTypes.length; d++) {
                     var drink = drinkTypes[d];
-                    var count = (p.drinks && p.drinks[drink.id]) ? p.drinks[drink.id] : 0;
+                    var count = (personObj.drinks && personObj.drinks[drink.id]) ? personObj.drinks[drink.id] : 0;
                     var tallyStr = formatTally(count);
 
                     drinkRowsHtml += 
@@ -769,22 +826,22 @@ const firebaseConfig = {
                                 '<span class="drink-tally">' + tallyStr + '</span>' +
                             '</div>' +
                             '<div class="btn-group">' +
-                                '<button class="btn-sm minus" onclick="changeCount(' + pIdx + ', \'' + drink.id + '\', -1)">-</button>' +
+                                '<button type="button" class="btn-sm minus" onclick="changeCount(' + pIdx + ', \'' + drink.id + '\', -1)">-</button>' +
                                 '<span class="count-val">' + count + '</span>' +
-                                '<button class="btn-sm plus" onclick="changeCount(' + pIdx + ', \'' + drink.id + '\', 1)">+</button>' +
+                                '<button type="button" class="btn-sm plus" onclick="changeCount(' + pIdx + ', \'' + drink.id + '\', 1)">+</button>' +
                             '</div>' +
                         '</div>';
                 }
 
                 var adminActions = (currentUser && currentUser.isAdmin) ? 
                     '<div class="person-actions">' +
-                        '<button class="checkout-single-btn" onclick="checkoutPerson(' + pIdx + ')">💳 Einzeln abrechnen (' + personTotalCost.toFixed(2).replace('.', ',') + ' €)</button>' +
-                        '<button style="background:none; border:none; color:#ff3b30; font-size:12px; cursor:pointer;" onclick="deletePerson(' + pIdx + ')">Person löschen</button>' +
+                        '<button type="button" class="checkout-single-btn" onclick="checkoutPerson(' + pIdx + ')">💳 Einzeln abrechnen (' + personTotalCost.toFixed(2).replace('.', ',') + ' €)</button>' +
+                        '<button type="button" style="background:none; border:none; color:#ff3b30; font-size:12px; cursor:pointer;" onclick="deletePerson(' + pIdx + ')">Person löschen</button>' +
                     '</div>' : '';
 
                 card.innerHTML = 
                     '<div class="person-header">' +
-                        '<span class="person-name">' + escapeHtml(p.name) + '</span>' +
+                        '<span class="person-name">' + escapeHtml(personObj.name) + '</span>' +
                         '<span class="person-total-cost">' + personTotalCost.toFixed(2).replace('.', ',') + ' €</span>' +
                     '</div>' +
                     '<div class="drink-rows">' + drinkRowsHtml + '</div>' + adminActions;

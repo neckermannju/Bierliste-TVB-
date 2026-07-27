@@ -3,17 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Getränke & Bier Strichliste 🍺 (Live)</title>
+    <title>Getränke & Bier Strichliste 🍺</title>
     
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
     <style>
-        * {
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: #f2f2f7;
@@ -31,30 +28,15 @@
             display: flex;
             flex-direction: column;
             gap: 16px;
-            position: relative;
-            z-index: 1;
         }
-        header {
-            text-align: center;
-            padding: 5px 0;
-        }
-        h1 {
-            font-size: 24px;
-            margin: 0 0 4px 0;
-            color: #1c1c1e;
-        }
-        .subtitle {
-            font-size: 13px;
-            color: #8e8e93;
-            margin: 0;
-        }
+        header { text-align: center; padding: 5px 0; }
+        h1 { font-size: 24px; margin: 0 0 4px 0; color: #1c1c1e; }
+        .subtitle { font-size: 13px; color: #8e8e93; margin: 0; }
         .card {
             background: #ffffff;
             border-radius: 14px;
             padding: 16px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            position: relative;
-            z-index: 2;
         }
         .card-title {
             font-size: 16px;
@@ -63,13 +45,9 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            color: #1c1c1e;
         }
-        .form-row {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 8px;
-        }
+        .form-row { display: flex; gap: 8px; margin-bottom: 8px; flex-direction: column; }
+        .form-row-inline { display: flex; gap: 8px; margin-bottom: 8px; }
         input {
             flex: 1;
             padding: 10px 12px;
@@ -79,19 +57,21 @@
             background-color: #f9f9fb;
             color: #1c1c1e;
             outline: none;
-            pointer-events: auto !important;
             -webkit-appearance: none;
         }
-        input:focus {
-            border-color: #007aff;
-            background-color: #fff;
-        }
-        button {
-            cursor: pointer;
-            touch-action: manipulation;
-            pointer-events: auto !important;
-        }
+        input:focus { border-color: #007aff; background-color: #fff; }
+        button { cursor: pointer; touch-action: manipulation; }
         button.primary-btn {
+            padding: 10px 14px;
+            background-color: #007aff;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            width: 100%;
+        }
+        button.success-btn {
             padding: 10px 14px;
             background-color: #34c759;
             color: white;
@@ -99,7 +79,6 @@
             border-radius: 10px;
             font-size: 14px;
             font-weight: 600;
-            white-space: nowrap;
         }
         button.danger-btn {
             padding: 12px 14px;
@@ -110,6 +89,14 @@
             font-size: 14px;
             font-weight: 600;
             width: 100%;
+        }
+        .auth-toggle {
+            text-align: center;
+            font-size: 13px;
+            color: #007aff;
+            margin-top: 10px;
+            cursor: pointer;
+            text-decoration: underline;
         }
         .summary-card {
             background: linear-gradient(135deg, #007aff, #5856d6);
@@ -125,22 +112,9 @@
             text-align: center;
             padding: 14px;
         }
-        .summary-item .num {
-            font-size: 20px;
-            font-weight: 700;
-            margin-bottom: 2px;
-        }
-        .summary-item .lbl {
-            font-size: 11px;
-            opacity: 0.85;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .drink-badge-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
+        .summary-item .num { font-size: 20px; font-weight: 700; margin-bottom: 2px; }
+        .summary-item .lbl { font-size: 11px; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.5px; }
+        .drink-badge-list { display: flex; flex-wrap: wrap; gap: 8px; }
         .drink-badge {
             background-color: #f2f2f7;
             border: 1px solid #e5e5ea;
@@ -151,41 +125,13 @@
             align-items: center;
             gap: 6px;
         }
-        .drink-badge .price {
-            font-weight: 600;
-            color: #007aff;
-        }
-        .drink-badge .del-btn {
-            color: #ff3b30;
-            font-weight: bold;
-            cursor: pointer;
-            margin-left: 4px;
-        }
-        .person-card {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            border-left: 4px solid #007aff;
-        }
-        .person-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .person-name {
-            font-size: 17px;
-            font-weight: 700;
-        }
-        .person-total-cost {
-            font-size: 17px;
-            font-weight: 700;
-            color: #34c759;
-        }
-        .drink-rows {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
+        .drink-badge .price { font-weight: 600; color: #007aff; }
+        .drink-badge .del-btn { color: #ff3b30; font-weight: bold; cursor: pointer; margin-left: 4px; }
+        .person-card { display: flex; flex-direction: column; gap: 10px; border-left: 4px solid #007aff; }
+        .person-header { display: flex; justify-content: space-between; align-items: center; }
+        .person-name { font-size: 17px; font-weight: 700; }
+        .person-total-cost { font-size: 17px; font-weight: 700; color: #34c759; }
+        .drink-rows { display: flex; flex-direction: column; gap: 8px; }
         .drink-row {
             display: flex;
             justify-content: space-between;
@@ -194,25 +140,10 @@
             padding: 8px 12px;
             border-radius: 10px;
         }
-        .drink-info {
-            display: flex;
-            flex-direction: column;
-        }
-        .drink-name {
-            font-weight: 600;
-            font-size: 14px;
-        }
-        .drink-tally {
-            font-size: 12px;
-            color: #ff9500;
-            font-weight: bold;
-            margin-top: 2px;
-        }
-        .btn-group {
-            display: flex;
-            gap: 6px;
-            align-items: center;
-        }
+        .drink-info { display: flex; flex-direction: column; }
+        .drink-name { font-weight: 600; font-size: 14px; }
+        .drink-tally { font-size: 12px; color: #ff9500; font-weight: bold; margin-top: 2px; }
+        .btn-group { display: flex; gap: 6px; align-items: center; }
         .btn-sm {
             border: none;
             width: 36px;
@@ -226,13 +157,8 @@
         }
         .plus { background-color: #007aff; color: white; }
         .minus { background-color: #e5e5ea; color: #1c1c1e; }
-        .count-val {
-            min-width: 20px;
-            text-align: center;
-            font-weight: 600;
-            font-size: 14px;
-        }
-        .admin-bar {
+        .count-val { min-width: 20px; text-align: center; font-weight: 600; font-size: 14px; }
+        .user-bar {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -241,11 +167,8 @@
             border-radius: 12px;
             font-size: 13px;
         }
-        .admin-status {
-            font-weight: 600;
-        }
-        .admin-status.active { color: #34c759; }
-        .admin-status.inactive { color: #8e8e93; }
+        .user-status { font-weight: 600; color: #007aff; }
+        .user-status.admin { color: #ff9500; }
         .admin-btn {
             background: none;
             border: 1px solid #d1d1d6;
@@ -253,12 +176,8 @@
             border-radius: 8px;
             font-size: 12px;
         }
-        .admin-only-block {
-            display: none;
-        }
-        body.is-admin .admin-only-block {
-            display: block !important;
-        }
+        .admin-only-block { display: none; }
+        body.is-admin .admin-only-block { display: block !important; }
         .person-actions {
             display: flex;
             justify-content: space-between;
@@ -276,12 +195,25 @@
             font-size: 12px;
             font-weight: 600;
         }
-        .status-sync {
-            font-size: 11px;
-            color: #007aff;
-            text-align: center;
-            margin-top: 4px;
+        .status-sync { font-size: 11px; color: #007aff; text-align: center; margin-top: 4px; }
+        .log-list {
+            max-height: 250px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-top: 8px;
         }
+        .log-item {
+            font-size: 12px;
+            padding: 6px 10px;
+            background: #f9f9fb;
+            border-radius: 6px;
+            border-left: 3px solid #007aff;
+            display: flex;
+            justify-content: space-between;
+        }
+        .log-time { color: #8e8e93; font-size: 10px; margin-left: 8px; white-space: nowrap; }
     </style>
 </head>
 <body>
@@ -293,67 +225,98 @@
         <div id="syncStatus" class="status-sync">🔄 Verbindung zu Firebase wird aufgebaut...</div>
     </header>
 
-    <div class="admin-bar card">
-        <span id="adminStatusText" class="admin-status inactive">👤 Modus: Gast (nur Zählen)</span>
-        <button id="adminLoginBtn" class="admin-btn" onclick="toggleAdmin()">Als Admin anmelden</button>
-    </div>
-
-    <div class="card summary-card">
-        <div class="summary-item">
-            <div class="num" id="totalDrinks">0</div>
-            <div class="lbl">Getränke offen</div>
+    <!-- AUTHENTIFIZIERUNG: LOGIN / REGISTRIERUNG -->
+    <div id="authContainer" class="card">
+        <div id="loginBox">
+            <div class="card-title">🔐 Anmelden</div>
+            <div class="form-row">
+                <input type="text" id="loginNameInput" placeholder="Vor- und Nachname">
+                <input type="password" maxlength="4" pattern="\d{4}" id="loginPinInput" placeholder="4-stellige PIN">
+                <button class="primary-btn" onclick="login()">Einloggen</button>
+            </div>
+            <div class="auth-toggle" onclick="showRegisterView()">Noch kein Konto? Hier registrieren</div>
         </div>
-        <div class="summary-item">
-            <div class="num" id="totalCost">0,00 €</div>
-            <div class="lbl">Offener Betrag</div>
-        </div>
-    </div>
 
-    <div class="card cash-card admin-only-block">
-        <div class="summary-item">
-            <div class="lbl" style="opacity: 0.9;">💰 Virtuelle Kasse (Bestand)</div>
-            <div class="num" id="cashBalance" style="font-size: 26px; margin-top: 4px;">0,00 €</div>
-        </div>
-    </div>
-
-    <div class="card admin-only-block">
-        <div class="card-title">⚡ Gesamtabrechnung & Kasse (Admin)</div>
-        <button class="danger-btn" onclick="confirmCheckoutAll()" style="margin-bottom: 12px;">
-            ✅ ALLE Personen abrechnen & Striche nullen
-        </button>
-        <div style="font-size: 12px; color: #8e8e93; margin-bottom: 8px;">Manuelle Kassenbuchung (Einnahme/Ausgabe):</div>
-        <div class="form-row">
-            <input type="number" step="0.50" id="cashAdjustmentInput" placeholder="Betrag € (z.B. 10 oder -5)">
-            <button class="primary-btn" onclick="adjustCash()">Buchen</button>
+        <div id="registerBox" style="display: none;">
+            <div class="card-title">📝 Registrieren</div>
+            <div class="form-row">
+                <input type="text" id="regFirstNameInput" placeholder="Vorname">
+                <input type="text" id="regLastNameInput" placeholder="Nachname">
+                <input type="password" maxlength="4" pattern="\d{4}" id="regPinInput" placeholder="4-stellige PIN ausdenken">
+                <button class="primary-btn" onclick="register()">Konto erstellen & Anmelden</button>
+            </div>
+            <div class="auth-toggle" onclick="showLoginView()">Bereits registriert? Zum Login</div>
         </div>
     </div>
 
-    <div class="card admin-only-block">
-        <div class="card-title">⚙️ Getränke & Preise (Admin)</div>
-        <div class="form-row">
-            <input type="text" id="drinkNameInput" placeholder="Getränk (z.B. Cola)">
-            <input type="number" step="0.10" id="drinkPriceInput" placeholder="Preis €" style="max-width: 90px;">
-            <button class="primary-btn" onclick="addDrinkType()">+</button>
+    <!-- HAUPT-APP (Wird erst nach Login sichtbar) -->
+    <div id="appContainer" style="display: none;" class="container">
+        
+        <div class="user-bar card">
+            <span id="userStatusText" class="user-status">👤 Eingeloggt als: -</span>
+            <button class="admin-btn" onclick="logout()">Abmelden</button>
         </div>
-        <div class="drink-badge-list" id="drinkBadgeList" style="margin-top: 10px;"></div>
-    </div>
 
-    <div class="card admin-only-block">
-        <div class="card-title">👤 Person hinzufügen (Admin)</div>
-        <div class="form-row">
-            <input type="text" id="personNameInput" placeholder="Vor- und Nachname...">
-            <button class="primary-btn" onclick="addPerson()">Hinzufügen</button>
+        <div class="card summary-card">
+            <div class="summary-item">
+                <div class="num" id="totalDrinks">0</div>
+                <div class="lbl">Getränke offen</div>
+            </div>
+            <div class="summary-item">
+                <div class="num" id="totalCost">0,00 €</div>
+                <div class="lbl">Offener Betrag</div>
+            </div>
         </div>
-    </div>
 
-    <div id="peopleList" style="display: flex; flex-direction: column; gap: 12px;"></div>
+        <div class="card cash-card admin-only-block">
+            <div class="summary-item">
+                <div class="lbl" style="opacity: 0.9;">💰 Virtuelle Kasse (Bestand)</div>
+                <div class="num" id="cashBalance" style="font-size: 26px; margin-top: 4px;">0,00 €</div>
+            </div>
+        </div>
+
+        <!-- Admin-Protokoll / Historie -->
+        <div class="card admin-only-block">
+            <div class="card-title">
+                <span>📜 Aktivitäten-Protokoll (Logfiles)</span>
+                <button class="admin-btn" onclick="clearLogs()" style="color:#ff3b30; border-color:#ff3b30;">Protokoll leeren</button>
+            </div>
+            <div id="logList" class="log-list">
+                <div style="color:#8e8e93; font-size:12px; text-align:center;">Lade Protokoll...</div>
+            </div>
+        </div>
+
+        <div class="card admin-only-block">
+            <div class="card-title">⚡ Gesamtabrechnung & Kasse (Admin)</div>
+            <button class="danger-btn" onclick="confirmCheckoutAll()" style="margin-bottom: 12px;">
+                ✅ ALLE Personen abrechnen & Striche nullen
+            </button>
+            <div style="font-size: 12px; color: #8e8e93; margin-bottom: 8px;">Manuelle Kassenbuchung (Einnahme/Ausgabe):</div>
+            <div class="form-row-inline">
+                <input type="number" step="0.50" id="cashAdjustmentInput" placeholder="Betrag € (z.B. 10 oder -5)">
+                <button class="success-btn" onclick="adjustCash()">Buchen</button>
+            </div>
+        </div>
+
+        <div class="card admin-only-block">
+            <div class="card-title">⚙️ Getränke & Preise (Admin)</div>
+            <div class="form-row-inline">
+                <input type="text" id="drinkNameInput" placeholder="Getränk (z.B. Cola)">
+                <input type="number" step="0.10" id="drinkPriceInput" placeholder="Preis €" style="max-width: 90px;">
+                <button class="success-btn" onclick="addDrinkType()">+</button>
+            </div>
+            <div class="drink-badge-list" id="drinkBadgeList" style="margin-top: 10px;"></div>
+        </div>
+
+        <div id="peopleList" style="display: flex; flex-direction: column; gap: 12px;"></div>
+    </div>
 </div>
 
 <script>
     // =========================================================================
-    // 1. ERSETZE DIESE DATED DURCH DEINE PERSÖNLICHEN FIREBASE-ZUGANGSDATEN:
+    // 1. FIREBASE ZUGANGSDATEN HIER EINFÜGEN:
     // =========================================================================
- const firebaseConfig = {
+const firebaseConfig = {
   apiKey: "AIzaSyC_IpuPtm16j7OpMxga4_7s4aJ9wDLAZiE",
   authDomain: "bierliste-tvb.firebaseapp.com",
   databaseURL: "https://bierliste-tvb-default-rtdb.firebaseio.com",
@@ -363,15 +326,16 @@
   appId: "1:203383350718:web:f9b2de01d99e5c4588c5ef"
 };
 
-    // Firebase Initialisieren
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    var ADMIN_PASSWORD = "1234";
-    var isAdmin = false;
+    // System-Variablen
+    var currentUser = null; // Spec: { name: "", pin: "", isAdmin: false }
+    var users = {}; 
     var cashRegister = 0.00;
     var drinkTypes = [];
     var people = [];
+    var logs = [];
 
     function escapeHtml(text) {
         if (!text) return '';
@@ -380,39 +344,301 @@
         });
     }
 
-    // Realtime Listener: Synchronisiert Änderungen auf allen Geräten SOFORT
+    // Auth Views umschalten
+    function showRegisterView() {
+        document.getElementById('loginBox').style.display = 'none';
+        document.getElementById('registerBox').style.display = 'block';
+    }
+    function showLoginView() {
+        document.getElementById('registerBox').style.display = 'none';
+        document.getElementById('loginBox').style.display = 'block';
+    }
+
+    // Registrierung
+    function register() {
+        var firstName = document.getElementById('regFirstNameInput').value.trim();
+        var lastName = document.getElementById('regLastNameInput').value.trim();
+        var pin = document.getElementById('regPinInput').value.trim();
+
+        if (!firstName || !lastName || pin.length !== 4 || isNaN(pin)) {
+            alert('Bitte Vorname, Nachname und eine 4-stellige PIN eingeben.');
+            return;
+        }
+
+        var fullName = firstName + ' ' + lastName;
+        var userKey = fullName.toLowerCase().replace(/\s+/g, '_');
+
+        if (users[userKey]) {
+            alert('Dieser Name ist bereits registriert. Bitte logge dich ein.');
+            return;
+        }
+
+        // Benutzer speichern
+        var newUser = { name: fullName, pin: pin, isAdmin: false };
+        db.ref('strichliste/users/' + userKey).set(newUser);
+
+        // Person automatisch zur Strichliste hinzufügen
+        var existingPerson = people.find(function(p) { return p.name.toLowerCase() === fullName.toLowerCase(); });
+        if (!existingPerson) {
+            people.push({ id: 'p_' + Date.now(), name: fullName, drinks: {} });
+            db.ref('strichliste/people').set(people);
+        }
+
+        addLogEntry('Neuer Benutzer registriert: ' + fullName, fullName);
+        alert('Registrierung erfolgreich! Du wirst jetzt eingeloggt.');
+        
+        currentUser = newUser;
+        initUserSession();
+    }
+
+    // Login
+    function login() {
+        var nameInput = document.getElementById('loginNameInput').value.trim();
+        var pinInput = document.getElementById('loginPinInput').value.trim();
+
+        if (!nameInput || !pinInput) {
+            alert('Bitte Name und PIN eingeben.');
+            return;
+        }
+
+        // Admin Prüfung: Justus Neckermann / 0104
+        if (nameInput.toLowerCase() === 'justus neckermann' && pinInput === '0104') {
+            currentUser = { name: 'Justus Neckermann', pin: '0104', isAdmin: true };
+            initUserSession();
+            return;
+        }
+
+        var userKey = nameInput.toLowerCase().replace(/\s+/g, '_');
+        var user = users[userKey];
+
+        if (user && user.pin === pinInput) {
+            currentUser = user;
+            initUserSession();
+        } else {
+            alert('Name oder PIN falsch!');
+        }
+    }
+
+    function logout() {
+        currentUser = null;
+        document.getElementById('authContainer').style.display = 'block';
+        document.getElementById('appContainer').style.display = 'none';
+        document.body.classList.remove('is-admin');
+    }
+
+    function initUserSession() {
+        document.getElementById('authContainer').style.display = 'none';
+        document.getElementById('appContainer').style.display = 'flex';
+
+        var statusElem = document.getElementById('userStatusText');
+        if (currentUser.isAdmin) {
+            statusElem.innerText = '🔑 Admin: ' + currentUser.name;
+            statusElem.className = 'user-status admin';
+            document.body.classList.add('is-admin');
+        } else {
+            statusElem.innerText = '👤 Eingeloggt als: ' + currentUser.name;
+            statusElem.className = 'user-status';
+            document.body.classList.remove('is-admin');
+        }
+        renderUIOnly();
+    }
+
+    // Log-Eintrag erstellen
+    function addLogEntry(message, actorOverride) {
+        var now = new Date();
+        var timeStr = now.toLocaleDateString('de-DE') + ' ' + now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        var actor = actorOverride || (currentUser ? currentUser.name + (currentUser.isAdmin ? ' (Admin)' : '') : 'System');
+
+        var logObj = {
+            text: actor + ': ' + message,
+            time: timeStr
+        };
+
+        logs.unshift(logObj);
+        if (logs.length > 150) logs.pop();
+        db.ref('strichliste/logs').set(logs);
+    }
+
+    // Firebase Live Sync
     db.ref('strichliste').on('value', function(snapshot) {
         var data = snapshot.val();
         document.getElementById('syncStatus').innerText = "🟢 Live synchronisiert";
-        
+
         if (data) {
             drinkTypes = data.drinkTypes || [];
             people = data.people || [];
             cashRegister = data.cashRegister || 0.00;
+            logs = data.logs || [];
+            users = data.users || {};
         } else {
-            // Standardwerte beim allerersten Start
             drinkTypes = [
                 { id: 'b1', name: 'Bier', price: 2.50 },
                 { id: 'b2', name: 'Radler', price: 2.50 },
                 { id: 'b3', name: 'Alkoholfrei', price: 2.00 }
             ];
-            people = [
-                { id: 'p1', name: 'Max Mustermann', drinks: {} },
-                { id: 'p2', name: 'Erika Berger', drinks: {} }
-            ];
+            people = [];
             cashRegister = 0.00;
+            logs = [];
+            users = {};
+            // Standard Admin Justus Neckermann in DB anlegen
+            users['justus_neckermann'] = { name: 'Justus Neckermann', pin: '0104', isAdmin: true };
             saveDataToCloud();
         }
-        renderUIOnly();
+
+        if (currentUser) renderUIOnly();
     });
 
     function saveDataToCloud() {
         document.getElementById('syncStatus').innerText = "🔄 Speichert...";
-        db.ref('strichliste').set({
-            drinkTypes: drinkTypes,
-            people: people,
-            cashRegister: cashRegister
-        });
+        db.ref('strichliste/drinkTypes').set(drinkTypes);
+        db.ref('strichliste/people').set(people);
+        db.ref('strichliste/cashRegister').set(cashRegister);
+        db.ref('strichliste/users').set(users);
+    }
+
+    function renderUIOnly() {
+        sortPeople();
+        renderDrinkBadges();
+        renderPeople();
+        renderSummary();
+        renderLogs();
+    }
+
+    function renderLogs() {
+        var container = document.getElementById('logList');
+        container.innerHTML = '';
+
+        if (logs.length === 0) {
+            container.innerHTML = '<div style="color:#8e8e93; font-size:12px; text-align:center;">Noch keine Protokolleinträge.</div>';
+            return;
+        }
+
+        for (var i = 0; i < logs.length; i++) {
+            var l = logs[i];
+            var div = document.createElement('div');
+            div.className = 'log-item';
+            div.innerHTML = '<span>' + escapeHtml(l.text) + '</span>' +
+                            '<span class="log-time">' + escapeHtml(l.time) + '</span>';
+            container.appendChild(div);
+        }
+    }
+
+    function clearLogs() {
+        if (!currentUser || !currentUser.isAdmin) return;
+        if (confirm('Möchtest du das gesamte Aktivitäts-Protokoll löschen?')) {
+            logs = [];
+            db.ref('strichliste/logs').set([]);
+        }
+    }
+
+    function changeCount(personIdx, drinkId, delta) {
+        if (!people[personIdx].drinks) people[personIdx].drinks = {};
+        if (!people[personIdx].drinks[drinkId]) people[personIdx].drinks[drinkId] = 0;
+
+        var newCount = people[personIdx].drinks[drinkId] + delta;
+        if (newCount >= 0) {
+            people[personIdx].drinks[drinkId] = newCount;
+            var drink = getDrinkById(drinkId);
+            var drinkName = drink ? drink.name : 'Getränk';
+            var actionStr = delta > 0 ? '+1' : '-1';
+
+            addLogEntry(actionStr + ' ' + drinkName + ' bei ' + people[personIdx].name);
+            saveDataToCloud();
+        }
+    }
+
+    function confirmCheckoutAll() {
+        if (!currentUser || !currentUser.isAdmin) return;
+        var currentTotal = getCurrentTotalCost();
+
+        if (currentTotal === 0) {
+            alert('Es gibt aktuell keine offenen Striche zum Abrechnen.');
+            return;
+        }
+
+        if (confirm('Möchtest du ALLE Personen abrechnen?\n\nBetrag: ' + currentTotal.toFixed(2).replace('.', ',') + ' €')) {
+            cashRegister += currentTotal;
+            for (var i = 0; i < people.length; i++) {
+                people[i].drinks = {};
+            }
+            addLogEntry('Gesamtabrechnung durchgeführt: ' + currentTotal.toFixed(2).replace('.', ',') + ' € verbucht.');
+            saveDataToCloud();
+            alert('Abrechnung erfolgreich!');
+        }
+    }
+
+    function checkoutPerson(personIdx) {
+        if (!currentUser || !currentUser.isAdmin) return;
+        var p = people[personIdx];
+        var cost = getPersonCost(p);
+
+        if (cost === 0) {
+            alert(p.name + ' hat keine offenen Striche.');
+            return;
+        }
+
+        if (confirm(p.name + ' abrechnen?\n\nBetrag: ' + cost.toFixed(2).replace('.', ',') + ' €')) {
+            cashRegister += cost;
+            p.drinks = {};
+            addLogEntry('Einzelabrechnung für ' + p.name + ': ' + cost.toFixed(2).replace('.', ',') + ' € verbucht.');
+            saveDataToCloud();
+            alert('Einzelabrechnung für ' + p.name + ' abgeschlossen!');
+        }
+    }
+
+    function adjustCash() {
+        if (!currentUser || !currentUser.isAdmin) return;
+        var input = document.getElementById('cashAdjustmentInput');
+        var amount = parseFloat(input.value.replace(',', '.'));
+
+        if (isNaN(amount) || amount === 0) {
+            alert('Bitte einen gültigen Betrag eingeben.');
+            return;
+        }
+
+        cashRegister += amount;
+        addLogEntry('Manuelle Kassenbuchung: ' + (amount > 0 ? '+' : '') + amount.toFixed(2).replace('.', ',') + ' €');
+        input.value = '';
+        saveDataToCloud();
+    }
+
+    function addDrinkType() {
+        if (!currentUser || !currentUser.isAdmin) return;
+        var nameInput = document.getElementById('drinkNameInput');
+        var priceInput = document.getElementById('drinkPriceInput');
+        var name = nameInput.value.trim();
+        var price = parseFloat(priceInput.value.replace(',', '.'));
+
+        if (!name || isNaN(price) || price < 0) {
+            alert('Bitte gültigen Namen und Preis eingeben.');
+            return;
+        }
+
+        drinkTypes.push({ id: 'd_' + Date.now(), name: name, price: price });
+        addLogEntry('Neues Getränk hinzugefügt: ' + name + ' (' + price.toFixed(2).replace('.', ',') + ' €)');
+        nameInput.value = '';
+        priceInput.value = '';
+        saveDataToCloud();
+    }
+
+    function deleteDrinkType(index) {
+        if (!currentUser || !currentUser.isAdmin) return;
+        if (confirm('Getränk wirklich entfernen?')) {
+            var removedName = drinkTypes[index].name;
+            drinkTypes.splice(index, 1);
+            addLogEntry('Getränk entfernt: ' + removedName);
+            saveDataToCloud();
+        }
+    }
+
+    function deletePerson(index) {
+        if (!currentUser || !currentUser.isAdmin) return;
+        if (confirm(people[index].name + ' wirklich löschen?')) {
+            var removedName = people[index].name;
+            people.splice(index, 1);
+            addLogEntry('Person gelöscht: ' + removedName);
+            saveDataToCloud();
+        }
     }
 
     function getLastName(fullName) {
@@ -429,36 +655,6 @@
         });
     }
 
-    function toggleAdmin() {
-        if (isAdmin) {
-            isAdmin = false;
-            document.body.classList.remove('is-admin');
-            document.getElementById('adminStatusText').className = 'admin-status inactive';
-            document.getElementById('adminStatusText').innerText = '👤 Modus: Gast (nur Zählen)';
-            document.getElementById('adminLoginBtn').innerText = 'Als Admin anmelden';
-            renderUIOnly();
-        } else {
-            var inputPw = prompt('Bitte Admin-Passwort eingeben:');
-            if (inputPw === ADMIN_PASSWORD) {
-                isAdmin = true;
-                document.body.classList.add('is-admin');
-                document.getElementById('adminStatusText').className = 'admin-status active';
-                document.getElementById('adminStatusText').innerText = '🔑 Modus: Admin (Vollzugriff)';
-                document.getElementById('adminLoginBtn').innerText = 'Abmelden';
-                renderUIOnly();
-            } else if (inputPw !== null) {
-                alert('Falsches Passwort!');
-            }
-        }
-    }
-
-    function renderUIOnly() {
-        sortPeople();
-        renderDrinkBadges();
-        renderPeople();
-        renderSummary();
-    }
-
     function renderDrinkBadges() {
         var container = document.getElementById('drinkBadgeList');
         container.innerHTML = '';
@@ -467,7 +663,7 @@
                 var d = drinkTypes[index];
                 var badge = document.createElement('div');
                 badge.className = 'drink-badge';
-                var delBtn = isAdmin ? '<span class="del-btn" onclick="deleteDrinkType(' + index + ')">✕</span>' : '';
+                var delBtn = (currentUser && currentUser.isAdmin) ? '<span class="del-btn" onclick="deleteDrinkType(' + index + ')">✕</span>' : '';
                 badge.innerHTML = '<span>' + escapeHtml(d.name) + '</span>' +
                                   '<span class="price">' + d.price.toFixed(2).replace('.', ',') + ' €</span>' + delBtn;
                 container.appendChild(badge);
@@ -488,9 +684,7 @@
         for (var dId in person.drinks) {
             var cnt = person.drinks[dId] || 0;
             var dObj = getDrinkById(dId);
-            if (dObj) {
-                cost += cnt * dObj.price;
-            }
+            if (dObj) cost += cnt * dObj.price;
         }
         return cost;
     }
@@ -521,58 +715,6 @@
         document.getElementById('cashBalance').innerText = cashRegister.toFixed(2).replace('.', ',') + ' €';
     }
 
-    function confirmCheckoutAll() {
-        if (!isAdmin) return;
-        var currentTotal = getCurrentTotalCost();
-        
-        if (currentTotal === 0) {
-            alert('Es gibt aktuell keine offenen Striche zum Abrechnen.');
-            return;
-        }
-
-        if (confirm('Möchtest du ALLE Personen abrechnen?\n\nBetrag: ' + currentTotal.toFixed(2).replace('.', ',') + ' €')) {
-            cashRegister += currentTotal;
-            for (var i = 0; i < people.length; i++) {
-                people[i].drinks = {};
-            }
-            saveDataToCloud();
-            alert('Abrechnung erfolgreich!');
-        }
-    }
-
-    function checkoutPerson(personIdx) {
-        if (!isAdmin) return;
-        var p = people[personIdx];
-        var cost = getPersonCost(p);
-
-        if (cost === 0) {
-            alert(p.name + ' hat keine offenen Striche.');
-            return;
-        }
-
-        if (confirm(p.name + ' abrechnen?\n\nBetrag: ' + cost.toFixed(2).replace('.', ',') + ' €')) {
-            cashRegister += cost;
-            p.drinks = {};
-            saveDataToCloud();
-            alert('Einzelabrechnung für ' + p.name + ' abgeschlossen!');
-        }
-    }
-
-    function adjustCash() {
-        if (!isAdmin) return;
-        var input = document.getElementById('cashAdjustmentInput');
-        var amount = parseFloat(input.value.replace(',', '.'));
-
-        if (isNaN(amount) || amount === 0) {
-            alert('Bitte einen gültigen Betrag eingeben.');
-            return;
-        }
-
-        cashRegister += amount;
-        input.value = '';
-        saveDataToCloud();
-    }
-
     function formatTally(count) {
         if (count === 0) return '0';
         var fullGroups = Math.floor(count / 5);
@@ -588,7 +730,7 @@
         container.innerHTML = '';
 
         if (people.length === 0) {
-            container.innerHTML = '<div class="card" style="text-align:center; color:#8e8e93;">Noch keine Personen eingetragen.</div>';
+            container.innerHTML = '<div class="card" style="text-align:center; color:#8e8e93;">Noch keine Personen registriert.</div>';
             return;
         }
 
@@ -620,10 +762,10 @@
                         '</div>';
                 }
 
-                var adminActions = isAdmin ? 
+                var adminActions = (currentUser && currentUser.isAdmin) ? 
                     '<div class="person-actions">' +
                         '<button class="checkout-single-btn" onclick="checkoutPerson(' + pIdx + ')">💳 Einzeln abrechnen (' + personTotalCost.toFixed(2).replace('.', ',') + ' €)</button>' +
-                        '<button style="background:none; border:none; color:#ff3b30; font-size:12px; cursor:pointer;" onclick="deletePerson(' + pIdx + ')">Löschen</button>' +
+                        '<button style="background:none; border:none; color:#ff3b30; font-size:12px; cursor:pointer;" onclick="deletePerson(' + pIdx + ')">Person löschen</button>' +
                     '</div>' : '';
 
                 card.innerHTML = 
@@ -635,65 +777,6 @@
 
                 container.appendChild(card);
             })(i);
-        }
-    }
-
-    function addDrinkType() {
-        if (!isAdmin) return;
-        var nameInput = document.getElementById('drinkNameInput');
-        var priceInput = document.getElementById('drinkPriceInput');
-        var name = nameInput.value.trim();
-        var price = parseFloat(priceInput.value.replace(',', '.'));
-
-        if (!name || isNaN(price) || price < 0) {
-            alert('Bitte gültigen Namen und Preis eingeben.');
-            return;
-        }
-
-        drinkTypes.push({ id: 'd_' + Date.now(), name: name, price: price });
-        nameInput.value = '';
-        priceInput.value = '';
-        saveDataToCloud();
-    }
-
-    function deleteDrinkType(index) {
-        if (!isAdmin) return;
-        if (confirm('Getränk wirklich entfernen?')) {
-            drinkTypes.splice(index, 1);
-            saveDataToCloud();
-        }
-    }
-
-    function addPerson() {
-        if (!isAdmin) return;
-        var input = document.getElementById('personNameInput');
-        var name = input.value.trim();
-        if (name !== '') {
-            people.push({ id: 'p_' + Date.now(), name: name, drinks: {} });
-            input.value = '';
-            saveDataToCloud();
-        }
-    }
-
-    function changeCount(personIdx, drinkId, delta) {
-        if (!people[personIdx].drinks) {
-            people[personIdx].drinks = {};
-        }
-        if (!people[personIdx].drinks[drinkId]) {
-            people[personIdx].drinks[drinkId] = 0;
-        }
-        var newCount = people[personIdx].drinks[drinkId] + delta;
-        if (newCount >= 0) {
-            people[personIdx].drinks[drinkId] = newCount;
-            saveDataToCloud();
-        }
-    }
-
-    function deletePerson(index) {
-        if (!isAdmin) return;
-        if (confirm(people[index].name + ' wirklich löschen?')) {
-            people.splice(index, 1);
-            saveDataToCloud();
         }
     }
 </script>

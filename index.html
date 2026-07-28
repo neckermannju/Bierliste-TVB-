@@ -1,158 +1,40 @@
+
 <!DOCTYPE html>
 <html lang="de">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bierdeckel Strichliste</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bierdeckel Strichliste</title>
 
-<style>
-body{
-    font-family: Arial, sans-serif;
-    background:#f2f2f2;
-    margin:20px;
-}
-h1{
-    text-align:center;
-}
-#addPerson{
-    display:flex;
-    gap:10px;
-    justify-content:center;
-    margin-bottom:20px;
-}
-input{
-    padding:8px;
-    font-size:16px;
-}
-button{
-    padding:8px 12px;
-    cursor:pointer;
-}
-.person{
-    background:white;
-    padding:15px;
-    margin-bottom:15px;
-    border-radius:10px;
-    box-shadow:0 2px 6px rgba(0,0,0,.2);
-}
-.striche{
-    font-size:24px;
-    margin:10px 0;
-    word-break: break-all;
-}
-.info{
-    font-weight:bold;
-}
-.buttons{
-    display:flex;
-    gap:10px;
-    flex-wrap:wrap;
-}
-</style>
-
+    <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
-<h1>🍺 Bierdeckel Strichliste</h1>
+<header>
+    <h1>🍺 Bierdeckel</h1>
+    <p>1 Strich = 1,50 €</p>
+</header>
 
-<div id="addPerson">
-    <input type="text" id="name" placeholder="Name">
-    <button onclick="addPerson()">Person hinzufügen</button>
-</div>
+<section class="addPerson">
 
-<div id="personen"></div>
+    <input
+        id="personName"
+        type="text"
+        placeholder="Name eingeben">
 
-<script>
-const preisProStrich = 1.5;
-let personen = [];
+    <button id="addBtn">
+        Person hinzufügen
+    </button>
 
-function render(){
-    const container = document.getElementById("personen");
-    container.innerHTML = "";
+</section>
 
-    personen.forEach((person,index)=>{
+<section id="personenListe">
 
-        let striche = "";
-        for(let i=0;i<person.striche;i++){
-            striche += "| ";
-        }
+</section>
 
-        container.innerHTML += `
-        <div class="person">
-            <h2>${person.name}</h2>
-
-            <div class="striche">${striche || "-"}</div>
-
-            <div class="info">
-                Striche: ${person.striche}<br>
-                Betrag: ${(person.striche*preisProStrich).toFixed(2)} €
-            </div>
-
-            <br>
-
-            <div class="buttons">
-                <button onclick="plus(${index})">➕ Strich</button>
-                <button onclick="minus(${index})">➖ Strich entfernen</button>
-                <button onclick="abrechnen(${index})">💶 Abrechnen</button>
-                <button onclick="removePerson(${index})">🗑 Person löschen</button>
-            </div>
-        </div>
-        `;
-    });
-}
-
-function addPerson(){
-    const input=document.getElementById("name");
-    const name=input.value.trim();
-
-    if(name==="") return;
-
-    personen.push({
-        name:name,
-        striche:0
-    });
-
-    input.value="";
-    render();
-}
-
-function removePerson(index){
-    if(confirm("Person wirklich löschen?")){
-        personen.splice(index,1);
-        render();
-    }
-}
-
-function plus(index){
-    personen[index].striche++;
-    render();
-}
-
-function minus(index){
-    if(personen[index].striche>0){
-        personen[index].striche--;
-        render();
-    }
-}
-
-function abrechnen(index){
-    const betrag=(personen[index].striche*preisProStrich).toFixed(2);
-
-    alert(
-        personen[index].name +
-        " muss " +
-        betrag +
-        " € bezahlen."
-    );
-
-    if(confirm("Strichliste danach zurücksetzen?")){
-        personen[index].striche=0;
-        render();
-    }
-}
-
-render();
-</script>
+<script type="module" src="app.js"></script>
 
 </body>
 </html>

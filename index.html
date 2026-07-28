@@ -1,926 +1,158 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Getränke & Bier Strichliste 🍺</title>
-    
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bierdeckel Strichliste</title>
 
-    <style>
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f2f2f7;
-            color: #1c1c1e;
-            margin: 0;
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-        }
-        .container {
-            width: 100%;
-            max-width: 480px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-        header { text-align: center; padding: 5px 0; }
-        h1 { font-size: 24px; margin: 0 0 4px 0; color: #1c1c1e; }
-        .subtitle { font-size: 13px; color: #8e8e93; margin: 0; }
-        .card {
-            background: #ffffff;
-            border-radius: 14px;
-            padding: 16px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        }
-        .card-title {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .form-row { display: flex; gap: 8px; margin-bottom: 8px; flex-direction: column; }
-        .form-row-inline { display: flex; gap: 8px; margin-bottom: 8px; }
-        input {
-            flex: 1;
-            padding: 10px 12px;
-            border: 1px solid #d1d1d6;
-            border-radius: 10px;
-            font-size: 15px;
-            background-color: #f9f9fb;
-            color: #1c1c1e;
-            outline: none;
-            -webkit-appearance: none;
-        }
-        input.name-input { text-transform: capitalize; }
-        input.username-input { text-transform: lowercase; }
-        input:focus { border-color: #007aff; background-color: #fff; }
-        button { cursor: pointer; touch-action: manipulation; }
-        button.primary-btn {
-            padding: 10px 14px;
-            background-color: #007aff;
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 14px;
-            font-weight: 600;
-            width: 100%;
-        }
-        button.success-btn {
-            padding: 10px 14px;
-            background-color: #34c759;
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 14px;
-            font-weight: 600;
-        }
-        button.danger-btn {
-            padding: 12px 14px;
-            background-color: #ff3b30;
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 14px;
-            font-weight: 600;
-            width: 100%;
-        }
-        .auth-toggle {
-            text-align: center;
-            font-size: 13px;
-            color: #007aff;
-            margin-top: 10px;
-            cursor: pointer;
-            text-decoration: underline;
-        }
-        .summary-card {
-            background: linear-gradient(135deg, #007aff, #5856d6);
-            color: white;
-            display: flex;
-            justify-content: space-around;
-            text-align: center;
-            padding: 14px;
-        }
-        .cash-card {
-            background: linear-gradient(135deg, #34c759, #30b050);
-            color: white;
-            text-align: center;
-            padding: 14px;
-            display: none;
-        }
-        .summary-item .num { font-size: 20px; font-weight: 700; margin-bottom: 2px; }
-        .summary-item .lbl { font-size: 11px; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.5px; }
-        .drink-badge-list { display: flex; flex-wrap: wrap; gap: 8px; }
-        .drink-badge {
-            background-color: #f2f2f7;
-            border: 1px solid #e5e5ea;
-            border-radius: 20px;
-            padding: 6px 12px;
-            font-size: 13px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .drink-badge .price { font-weight: 600; color: #007aff; }
-        .drink-badge .del-btn { 
-            color: #ff3b30; 
-            font-weight: bold; 
-            cursor: pointer; 
-            margin-left: 6px;
-            padding: 2px 6px;
-            background: #ffe5e5;
-            border-radius: 50%;
-        }
-        .person-card { display: flex; flex-direction: column; gap: 10px; border-left: 4px solid #007aff; }
-        .person-header { display: flex; justify-content: space-between; align-items: center; }
-        .person-name { font-size: 17px; font-weight: 700; }
-        .person-username { font-size: 12px; color: #8e8e93; font-weight: normal; }
-        .person-total-cost { font-size: 17px; font-weight: 700; color: #34c759; }
-        .drink-rows { display: flex; flex-direction: column; gap: 8px; }
-        .drink-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #f9f9fb;
-            padding: 8px 12px;
-            border-radius: 10px;
-        }
-        .drink-info { display: flex; flex-direction: column; }
-        .drink-name { font-weight: 600; font-size: 14px; }
-        .drink-tally { font-size: 12px; color: #ff9500; font-weight: bold; margin-top: 2px; }
-        .btn-group { display: flex; gap: 6px; align-items: center; }
-        .btn-sm {
-            border: none;
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            font-size: 18px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .plus { background-color: #007aff; color: white; }
-        .minus { background-color: #e5e5ea; color: #1c1c1e; }
-        .count-val { min-width: 20px; text-align: center; font-weight: 600; font-size: 14px; }
-        .user-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #ffffff;
-            padding: 10px 14px;
-            border-radius: 12px;
-            font-size: 13px;
-        }
-        .user-status { font-weight: 600; color: #007aff; }
-        .user-status.admin { color: #ff9500; }
-        .admin-btn {
-            background: none;
-            border: 1px solid #d1d1d6;
-            padding: 6px 12px;
-            border-radius: 8px;
-            font-size: 12px;
-        }
-        .admin-only-block { display: none !important; }
-        body.is-admin .admin-only-block { display: block !important; }
-        body.is-admin .cash-card { display: block !important; }
-        .person-actions {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-top: 1px solid #f2f2f7;
-            padding-top: 8px;
-            margin-top: 4px;
-        }
-        .checkout-single-btn {
-            background-color: #34c759;
-            color: white;
-            border: none;
-            padding: 6px 10px;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-        .status-sync { font-size: 11px; color: #007aff; text-align: center; margin-top: 4px; }
-        .log-list {
-            max-height: 250px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            margin-top: 8px;
-        }
-        .log-item {
-            font-size: 12px;
-            padding: 6px 10px;
-            background: #f9f9fb;
-            border-radius: 6px;
-            border-left: 3px solid #007aff;
-            display: flex;
-            justify-content: space-between;
-        }
-        .log-time { color: #8e8e93; font-size: 10px; margin-left: 8px; white-space: nowrap; }
-    </style>
+<style>
+body{
+    font-family: Arial, sans-serif;
+    background:#f2f2f2;
+    margin:20px;
+}
+h1{
+    text-align:center;
+}
+#addPerson{
+    display:flex;
+    gap:10px;
+    justify-content:center;
+    margin-bottom:20px;
+}
+input{
+    padding:8px;
+    font-size:16px;
+}
+button{
+    padding:8px 12px;
+    cursor:pointer;
+}
+.person{
+    background:white;
+    padding:15px;
+    margin-bottom:15px;
+    border-radius:10px;
+    box-shadow:0 2px 6px rgba(0,0,0,.2);
+}
+.striche{
+    font-size:24px;
+    margin:10px 0;
+    word-break: break-all;
+}
+.info{
+    font-weight:bold;
+}
+.buttons{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+}
+</style>
+
 </head>
 <body>
 
-<div class="container">
-    <header>
-        <h1>🍺 Strichliste & Rechner</h1>
-        <p class="subtitle">Getränke erfassen und verwalten</p>
-        <div id="syncStatus" class="status-sync">🔄 Verbindung zu Firebase wird aufgebaut...</div>
-    </header>
+<h1>🍺 Bierdeckel Strichliste</h1>
 
-    <!-- AUTHENTIFIZIERUNG -->
-    <div id="authContainer" class="card">
-        <form id="loginBox" onsubmit="login(event)">
-            <div class="card-title">🔐 Anmelden</div>
-            <div class="form-row">
-                <input type="text" id="loginUsernameInput" class="username-input" placeholder="Benutzername (z.B. neckermannju)" autocomplete="username" required>
-                <input type="password" maxlength="4" pattern="\d{4}" id="loginPinInput" placeholder="4-stellige PIN" autocomplete="current-password" inputmode="numeric" required>
-                <button type="submit" class="primary-btn">Einloggen</button>
-            </div>
-            <div class="auth-toggle" onclick="showRegisterView()">Noch kein Konto? Hier registrieren</div>
-        </form>
-
-        <form id="registerBox" style="display: none;" onsubmit="register(event)">
-            <div class="card-title">📝 Registrieren</div>
-            <div class="form-row">
-                <input type="text" id="regFirstNameInput" class="name-input" placeholder="Vorname" autocomplete="given-name" required>
-                <input type="text" id="regLastNameInput" class="name-input" placeholder="Nachname" autocomplete="family-name" required>
-                <input type="password" maxlength="4" pattern="\d{4}" id="regPinInput" placeholder="4-stellige PIN ausdenken" autocomplete="new-password" inputmode="numeric" required>
-                <button type="submit" class="primary-btn">Konto erstellen & Anmelden</button>
-            </div>
-            <div class="auth-toggle" onclick="showLoginView()">Bereits registriert? Zum Login</div>
-        </form>
-    </div>
-
-    <!-- HAUPT-APP -->
-    <div id="appContainer" style="display: none;" class="container">
-        
-        <div class="user-bar card">
-            <span id="userStatusText" class="user-status">👤 Eingeloggt als: -</span>
-            <button class="admin-btn" onclick="logout()">Abmelden</button>
-        </div>
-
-        <div class="card summary-card">
-            <div class="summary-item">
-                <div class="num" id="totalDrinks">0</div>
-                <div class="lbl" id="lblTotalDrinks">Getränke offen</div>
-            </div>
-            <div class="summary-item">
-                <div class="num" id="totalCost">0,00 €</div>
-                <div class="lbl" id="lblTotalCost">Offener Betrag</div>
-            </div>
-        </div>
-
-        <div class="card cash-card">
-            <div class="summary-item">
-                <div class="lbl" style="opacity: 0.9;">💰 Virtuelle Kasse (Bestand)</div>
-                <div class="num" id="cashBalance" style="font-size: 26px; margin-top: 4px;">0,00 €</div>
-            </div>
-        </div>
-
-        <div class="card admin-only-block">
-            <div class="card-title">
-                <span>📜 Aktivitäten-Protokoll</span>
-                <button class="admin-btn" onclick="clearLogs()" style="color:#ff3b30; border-color:#ff3b30;">Protokoll leeren</button>
-            </div>
-            <div id="logList" class="log-list"></div>
-        </div>
-
-        <div class="card admin-only-block">
-            <div class="card-title">⚡ Gesamtabrechnung & Kasse (Admin)</div>
-            <button class="danger-btn" onclick="confirmCheckoutAll()" style="margin-bottom: 12px;">
-                ✅ ALLE Personen abrechnen & Striche nullen
-            </button>
-            <div style="font-size: 12px; color: #8e8e93; margin-bottom: 8px;">Manuelle Kassenbuchung:</div>
-            <div class="form-row-inline">
-                <input type="number" step="0.50" id="cashAdjustmentInput" placeholder="Betrag € (z.B. 10 oder -5)">
-                <button class="success-btn" onclick="adjustCash()">Buchen</button>
-            </div>
-        </div>
-
-        <div class="card admin-only-block">
-            <div class="card-title">⚙️ Getränke & Preise (Admin)</div>
-            <div class="form-row-inline">
-                <input type="text" id="drinkNameInput" placeholder="Getränk (z.B. Cola)">
-                <input type="number" step="0.10" id="drinkPriceInput" placeholder="Preis €" style="max-width: 90px;">
-                <button class="success-btn" onclick="addDrinkType()">+</button>
-            </div>
-            <div class="drink-badge-list" id="drinkBadgeList" style="margin-top: 10px;"></div>
-        </div>
-
-        <div id="peopleList" style="display: flex; flex-direction: column; gap: 12px;"></div>
-    </div>
+<div id="addPerson">
+    <input type="text" id="name" placeholder="Name">
+    <button onclick="addPerson()">Person hinzufügen</button>
 </div>
 
+<div id="personen"></div>
+
 <script>
-    // FIREBASE CONFIG
-    const firebaseConfig = {
-      apiKey: "AIzaSyC_IpuPtm16j7OpMxga4_7s4aJ9wDLAZiE",
-      authDomain: "bierliste-tvb.firebaseapp.com",
-      databaseURL: "https://bierliste-tvb-default-rtdb.us-central1.firebasedatabase.app",
-      projectId: "bierliste-tvb",
-      storageBucket: "bierliste-tvb.firebasestorage.app",
-      messagingSenderId: "203383350718",
-      appId: "1:203383350718:web:f9b2de01d99e5c4588c5ef"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+const preisProStrich = 1.5;
+let personen = [];
 
-    var currentUser = null;
-    var users = {};
-    var cashRegister = 0.00;
-    var drinkTypes = [];
-    var people = [];
-    var logs = [];
+function render(){
+    const container = document.getElementById("personen");
+    container.innerHTML = "";
 
-    // -------------------------------------------------------------------
-    // Firebase stores plain JS arrays with numeric string keys ("0","1",...).
-    // After any deletion the keys shift, so items lose their original .id.
-    // We therefore always store people/drinkTypes as objects keyed by their
-    // own .id field.  This helper converts either format back to an array.
-    // -------------------------------------------------------------------
-    function firebaseDataToArray(data) {
-        if (!data) return [];
-        if (Array.isArray(data)) {
-            return data.filter(function(item) { return item !== null && item !== undefined; });
-        }
-        var arr = [];
-        for (var key in data) {
-            if (data.hasOwnProperty(key) && data[key]) {
-                var item = data[key];
-                // Only fall back to the numeric key when the item truly has no id.
-                // For people/drinkTypes this should never happen because we always
-                // store them keyed by their own id.
-                if (!item.id) item.id = key;
-                arr.push(item);
-            }
-        }
-        return arr;
-    }
+    personen.forEach((person,index)=>{
 
-    // Convert a people/drinkTypes array to a Firebase-safe object keyed by .id.
-    // This prevents Firebase from replacing IDs with numeric string keys.
-    function arrayToFirebaseObject(arr) {
-        var obj = {};
-        for (var i = 0; i < arr.length; i++) {
-            obj[arr[i].id] = arr[i];
-        }
-        return obj;
-    }
-
-    function escapeHtml(text) {
-        if (!text) return '';
-        return String(text).replace(/[&<>"']/g, function(m) {
-            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
-        });
-    }
-
-    function capitalizeName(str) {
-        if (!str) return '';
-        return str.trim().split(/\s+/).map(function(word) {
-            return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-        }).join(' ');
-    }
-
-    // Username = Nachname + erste 2 Buchstaben Vorname
-    function generateUsername(firstName, lastName) {
-        var cleanFirst = firstName.trim().toLowerCase().replace(/[^a-zäöüß]/g, '');
-        var cleanLast = lastName.trim().toLowerCase().replace(/[^a-zäöüß]/g, '');
-        var firstTwo = cleanFirst.substring(0, 2);
-        return cleanLast + firstTwo;
-    }
-
-    function showRegisterView() {
-        document.getElementById('loginBox').style.display = 'none';
-        document.getElementById('registerBox').style.display = 'block';
-    }
-    function showLoginView() {
-        document.getElementById('registerBox').style.display = 'none';
-        document.getElementById('loginBox').style.display = 'block';
-    }
-
-    function register(event) {
-        if (event) event.preventDefault();
-        var firstName = capitalizeName(document.getElementById('regFirstNameInput').value);
-        var lastName = capitalizeName(document.getElementById('regLastNameInput').value);
-        var pin = document.getElementById('regPinInput').value.trim();
-
-        // FIX: use a regex to ensure the PIN is exactly 4 digits (no spaces, no letters).
-        // The old isNaN(pin) check accepted strings like "    " (4 spaces).
-        if (!firstName || !lastName || !/^\d{4}$/.test(pin)) {
-            alert('Bitte Vorname, Nachname und eine 4-stellige PIN (nur Ziffern) eingeben.');
-            return;
+        let striche = "";
+        for(let i=0;i<person.striche;i++){
+            striche += "| ";
         }
 
-        var username = generateUsername(firstName, lastName);
-        var fullName = firstName + ' ' + lastName;
+        container.innerHTML += `
+        <div class="person">
+            <h2>${person.name}</h2>
 
-        if (users[username]) {
-            alert('Der Benutzername "' + username + '" existiert bereits.');
-            return;
-        }
+            <div class="striche">${striche || "-"}</div>
 
-        var isAdmin = (username === 'neckermannju');
+            <div class="info">
+                Striche: ${person.striche}<br>
+                Betrag: ${(person.striche*preisProStrich).toFixed(2)} €
+            </div>
 
-        var newUser = {
-            username: username,
-            name: fullName,
-            pin: pin,
-            isAdmin: isAdmin
-        };
+            <br>
 
-        users[username] = newUser;
-        db.ref('strichliste/users/' + username).set(newUser);
+            <div class="buttons">
+                <button onclick="plus(${index})">➕ Strich</button>
+                <button onclick="minus(${index})">➖ Strich entfernen</button>
+                <button onclick="abrechnen(${index})">💶 Abrechnen</button>
+                <button onclick="removePerson(${index})">🗑 Person löschen</button>
+            </div>
+        </div>
+        `;
+    });
+}
 
-        var existingPerson = people.find(function(p) { return p.username === username; });
-        if (!existingPerson) {
-            var newPerson = { id: 'p_' + Date.now(), username: username, name: fullName, drinks: {} };
-            people.push(newPerson);
-            // FIX: save people as an object keyed by id, not as a plain array.
-            // Storing a plain array in Firebase replaces each item's id with
-            // its numeric position after any deletion.
-            db.ref('strichliste/people/' + newPerson.id).set(newPerson);
-        }
+function addPerson(){
+    const input=document.getElementById("name");
+    const name=input.value.trim();
 
-        addLogEntry('Neuer Benutzer registriert: ' + fullName + ' (' + username + ')', fullName);
-        alert('Registrierung erfolgreich!\nDein Benutzername lautet: ' + username);
+    if(name==="") return;
 
-        currentUser = newUser;
-        saveSession(currentUser);
-        initUserSession();
-    }
-
-    function login(event) {
-        if (event) event.preventDefault();
-        var usernameInput = document.getElementById('loginUsernameInput').value.trim().toLowerCase();
-        var pinInput = document.getElementById('loginPinInput').value.trim();
-
-        var user = users[usernameInput];
-
-        if (user && user.pin === pinInput) {
-            currentUser = user;
-            saveSession(currentUser);
-            initUserSession();
-        } else {
-            alert('Benutzername oder PIN falsch!');
-        }
-    }
-
-    function saveSession(user) {
-        sessionStorage.setItem('strichliste_user', JSON.stringify(user));
-    }
-
-    function restoreSession() {
-        var savedUser = sessionStorage.getItem('strichliste_user');
-        if (savedUser) {
-            try {
-                currentUser = JSON.parse(savedUser);
-                initUserSession();
-            } catch (e) {
-                sessionStorage.removeItem('strichliste_user');
-            }
-        }
-    }
-
-    function logout() {
-        currentUser = null;
-        sessionStorage.removeItem('strichliste_user');
-        document.getElementById('authContainer').style.display = 'block';
-        document.getElementById('appContainer').style.display = 'none';
-        document.body.classList.remove('is-admin');
-    }
-
-    function initUserSession() {
-        document.getElementById('authContainer').style.display = 'none';
-        document.getElementById('appContainer').style.display = 'flex';
-
-        var statusElem = document.getElementById('userStatusText');
-        if (currentUser.isAdmin) {
-            statusElem.innerText = '🔑 Admin: ' + currentUser.name + ' (' + currentUser.username + ')';
-            statusElem.className = 'user-status admin';
-            document.body.classList.add('is-admin');
-        } else {
-            statusElem.innerText = '👤 Eingeloggt als: ' + currentUser.name + ' (' + currentUser.username + ')';
-            statusElem.className = 'user-status';
-            document.body.classList.remove('is-admin');
-        }
-
-        document.querySelectorAll('input[type="text"], input[type="password"]').forEach(function(input) {
-            input.value = '';
-        });
-
-        renderUIOnly();
-    }
-
-    function addLogEntry(message, actorOverride) {
-        var now = new Date();
-        var timeStr = now.toLocaleDateString('de-DE') + ' ' + now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-        var actor = actorOverride || (currentUser ? currentUser.name + (currentUser.isAdmin ? ' (Admin)' : '') : 'System');
-
-        var logObj = { text: actor + ': ' + message, time: timeStr };
-        logs.unshift(logObj);
-        if (logs.length > 100) logs.pop();
-        db.ref('strichliste/logs').set(logs);
-    }
-
-    // Firebase Listener
-    db.ref('strichliste').on('value', function(snapshot) {
-        var data = snapshot.val();
-        document.getElementById('syncStatus').innerText = "🟢 Live synchronisiert";
-
-        if (data) {
-            drinkTypes = firebaseDataToArray(data.drinkTypes);
-            people = firebaseDataToArray(data.people);
-            cashRegister = data.cashRegister || 0.00;
-            logs = firebaseDataToArray(data.logs);
-            users = data.users || {};
-        } else {
-            drinkTypes = [
-                { id: 'b1', name: 'Bier', price: 2.50 },
-                { id: 'b2', name: 'Radler', price: 2.50 },
-                { id: 'b3', name: 'Alkoholfrei', price: 2.00 }
-            ];
-            people = [
-                { id: 'p_admin', username: 'neckermannju', name: 'Justus Neckermann', drinks: {} }
-            ];
-            cashRegister = 0.00;
-            logs = [];
-            users = {};
-            users['neckermannju'] = { username: 'neckermannju', name: 'Justus Neckermann', pin: '0104', isAdmin: true };
-            saveDataToCloud();
-        }
-
-        // FIX: avoid double render when a session is restored.
-        // restoreSession() calls initUserSession() → renderUIOnly() internally.
-        // The old code called renderUIOnly() again on the next line because
-        // currentUser was now set, resulting in every Firebase update triggering
-        // two back-to-back renders when a session was active.
-        if (!currentUser) {
-            restoreSession();
-        } else {
-            renderUIOnly();
-        }
+    personen.push({
+        name:name,
+        striche:0
     });
 
-    function saveDataToCloud() {
-        document.getElementById('syncStatus').innerText = "🔄 Speichert...";
-        // FIX: store people and drinkTypes as objects keyed by their own .id.
-        // Firebase treats plain arrays with numeric string keys ("0","1",...).
-        // After any item is deleted the remaining entries shift positions and
-        // Firebase reassigns them new numeric ids, silently breaking every
-        // id-based lookup (changeCount, checkoutPerson, deleteDrinkTypeById…).
-        db.ref('strichliste/drinkTypes').set(arrayToFirebaseObject(drinkTypes));
-        db.ref('strichliste/people').set(arrayToFirebaseObject(people));
-        db.ref('strichliste/cashRegister').set(cashRegister);
-        db.ref('strichliste/users').set(users);
+    input.value="";
+    render();
+}
+
+function removePerson(index){
+    if(confirm("Person wirklich löschen?")){
+        personen.splice(index,1);
+        render();
     }
+}
 
-    function renderUIOnly() {
-        sortPeople();
-        renderDrinkBadges();
-        renderPeople();
-        renderSummary();
-        renderLogs();
+function plus(index){
+    personen[index].striche++;
+    render();
+}
+
+function minus(index){
+    if(personen[index].striche>0){
+        personen[index].striche--;
+        render();
     }
+}
 
-    function renderLogs() {
-        var container = document.getElementById('logList');
-        container.innerHTML = '';
-        if (logs.length === 0) {
-            container.innerHTML = '<div style="color:#8e8e93; font-size:12px; text-align:center;">Keine Einträge.</div>';
-            return;
-        }
-        for (var i = 0; i < logs.length; i++) {
-            var div = document.createElement('div');
-            div.className = 'log-item';
-            div.innerHTML = '<span>' + escapeHtml(logs[i].text) + '</span><span class="log-time">' + escapeHtml(logs[i].time) + '</span>';
-            container.appendChild(div);
-        }
+function abrechnen(index){
+    const betrag=(personen[index].striche*preisProStrich).toFixed(2);
+
+    alert(
+        personen[index].name +
+        " muss " +
+        betrag +
+        " € bezahlen."
+    );
+
+    if(confirm("Strichliste danach zurücksetzen?")){
+        personen[index].striche=0;
+        render();
     }
+}
 
-    function clearLogs() {
-        if (!currentUser || !currentUser.isAdmin) return;
-        if (confirm('Aktivitäts-Protokoll löschen?')) {
-            logs = [];
-            db.ref('strichliste/logs').set([]);
-        }
-    }
-
-    function changeCount(personId, drinkId, delta) {
-        var person = people.find(function(p) { return p.id === personId; });
-        if (!person) return;
-
-        // FIX: non-admin users must only modify their own entry.
-        // The UI already hides other people's cards, but this guard prevents
-        // a logged-in user from calling changeCount() directly in the console
-        // to tamper with someone else's tab.
-        if (!currentUser || (!currentUser.isAdmin && person.username !== currentUser.username)) {
-            alert('Keine Berechtigung.');
-            return;
-        }
-
-        if (!person.drinks) person.drinks = {};
-        if (!person.drinks[drinkId]) person.drinks[drinkId] = 0;
-
-        var newCount = person.drinks[drinkId] + delta;
-        if (newCount >= 0) {
-            person.drinks[drinkId] = newCount;
-            var drink = getDrinkById(drinkId);
-            var drinkName = drink ? drink.name : 'Getränk';
-            addLogEntry((delta > 0 ? '+1 ' : '-1 ') + drinkName + ' bei ' + person.name);
-            saveDataToCloud();
-        }
-    }
-
-    function confirmCheckoutAll() {
-        if (!currentUser || !currentUser.isAdmin) return;
-        var currentTotal = getCurrentTotalCost();
-
-        if (currentTotal === 0) {
-            alert('Keine offenen Striche.');
-            return;
-        }
-
-        if (confirm('ALLE Personen abrechnen?\nGesamt: ' + currentTotal.toFixed(2).replace('.', ',') + ' €')) {
-            cashRegister += currentTotal;
-            for (var i = 0; i < people.length; i++) {
-                people[i].drinks = {};
-            }
-            addLogEntry('Gesamtabrechnung: ' + currentTotal.toFixed(2).replace('.', ',') + ' € verbucht.');
-            saveDataToCloud();
-        }
-    }
-
-    function checkoutPerson(personId) {
-        if (!currentUser || !currentUser.isAdmin) return;
-        var p = people.find(function(item) { return item.id === personId; });
-        if (!p) return;
-
-        var cost = getPersonCost(p);
-        if (cost === 0) {
-            alert(p.name + ' hat keine offenen Striche.');
-            return;
-        }
-
-        if (confirm(p.name + ' abrechnen?\nBetrag: ' + cost.toFixed(2).replace('.', ',') + ' €')) {
-            cashRegister += cost;
-            p.drinks = {};
-            addLogEntry('Abrechnung für ' + p.name + ': ' + cost.toFixed(2).replace('.', ',') + ' €');
-            saveDataToCloud();
-        }
-    }
-
-    function adjustCash() {
-        if (!currentUser || !currentUser.isAdmin) return;
-        var input = document.getElementById('cashAdjustmentInput');
-        var amount = parseFloat(input.value.replace(',', '.'));
-
-        if (isNaN(amount) || amount === 0) return;
-
-        cashRegister += amount;
-        addLogEntry('Kassenbuchung: ' + (amount > 0 ? '+' : '') + amount.toFixed(2).replace('.', ',') + ' €');
-        input.value = '';
-        saveDataToCloud();
-    }
-
-    function addDrinkType() {
-        if (!currentUser || !currentUser.isAdmin) return;
-        var nameInput = document.getElementById('drinkNameInput');
-        var priceInput = document.getElementById('drinkPriceInput');
-        var name = nameInput.value.trim();
-        var price = parseFloat(priceInput.value.replace(',', '.'));
-
-        if (!name || isNaN(price) || price < 0) {
-            alert('Bitte Name und Preis eingeben.');
-            return;
-        }
-
-        drinkTypes.push({ id: 'd_' + Date.now(), name: name, price: price });
-        addLogEntry('Neues Getränk: ' + name + ' (' + price.toFixed(2).replace('.', ',') + ' €)');
-        nameInput.value = '';
-        priceInput.value = '';
-        saveDataToCloud();
-    }
-
-    function deleteDrinkTypeById(drinkId) {
-        if (!currentUser || !currentUser.isAdmin) return;
-
-        var drink = drinkTypes.find(function(d) { return d.id === drinkId; });
-        if (!drink) return;
-
-        if (confirm('Möchtest du "' + drink.name + '" wirklich löschen? (Offene Striche dafür werden entfernt)')) {
-            drinkTypes = drinkTypes.filter(function(d) { return d.id !== drinkId; });
-
-            for (var i = 0; i < people.length; i++) {
-                if (people[i].drinks && people[i].drinks[drinkId]) {
-                    delete people[i].drinks[drinkId];
-                }
-            }
-
-            addLogEntry('Getränk gelöscht: ' + drink.name);
-            // FIX: use saveDataToCloud so both paths use the object-keyed format.
-            saveDataToCloud();
-        }
-    }
-
-    function deletePersonById(personId) {
-        if (!currentUser || !currentUser.isAdmin) return;
-
-        var person = people.find(function(p) { return p.id === personId; });
-        if (!person) return;
-
-        if (confirm('Möchtest du "' + person.name + '" wirklich komplett löschen?')) {
-            var username = person.username;
-
-            people = people.filter(function(p) { return p.id !== personId; });
-
-            if (username && users[username]) {
-                delete users[username];
-                db.ref('strichliste/users/' + username).remove();
-            }
-
-            addLogEntry('Person gelöscht: ' + person.name + ' (' + username + ')');
-            // FIX: use saveDataToCloud so people are stored as object-keyed format.
-            saveDataToCloud();
-        }
-    }
-
-    function getLastName(fullName) {
-        if (!fullName) return '';
-        var parts = fullName.trim().split(/\s+/);
-        return parts.length > 1 ? parts[parts.length - 1] : parts[0];
-    }
-
-    function sortPeople() {
-        people.sort(function(a, b) {
-            var lastNameA = getLastName(a.name).toLowerCase();
-            var lastNameB = getLastName(b.name).toLowerCase();
-            return lastNameA.localeCompare(lastNameB, 'de', { sensitivity: 'base' });
-        });
-    }
-
-    function renderDrinkBadges() {
-        var container = document.getElementById('drinkBadgeList');
-        container.innerHTML = '';
-        var isAdmin = currentUser && currentUser.isAdmin;
-
-        for (var i = 0; i < drinkTypes.length; i++) {
-            var d = drinkTypes[i];
-            var badge = document.createElement('div');
-            badge.className = 'drink-badge';
-
-            var delBtn = isAdmin
-                ? '<span class="del-btn" onclick="deleteDrinkTypeById(\'' + d.id + '\')">✕</span>'
-                : '';
-
-            badge.innerHTML = '<span>' + escapeHtml(d.name) + '</span>' +
-                              '<span class="price">' + d.price.toFixed(2).replace('.', ',') + ' €</span>' + delBtn;
-            container.appendChild(badge);
-        }
-    }
-
-    function getDrinkById(id) {
-        for (var i = 0; i < drinkTypes.length; i++) {
-            if (drinkTypes[i].id === id) return drinkTypes[i];
-        }
-        return null;
-    }
-
-    function getPersonCost(person) {
-        var cost = 0;
-        if (!person.drinks) return 0;
-        for (var dId in person.drinks) {
-            var cnt = person.drinks[dId] || 0;
-            var dObj = getDrinkById(dId);
-            if (dObj) cost += cnt * dObj.price;
-        }
-        return cost;
-    }
-
-    function getCurrentTotalCost() {
-        var totalMoney = 0;
-        for (var i = 0; i < people.length; i++) {
-            totalMoney += getPersonCost(people[i]);
-        }
-        return totalMoney;
-    }
-
-    function renderSummary() {
-        var totalCount = 0;
-        var totalMoney = 0;
-
-        if (currentUser && currentUser.isAdmin) {
-            document.getElementById('lblTotalDrinks').innerText = "Getränke offen (Alle)";
-            document.getElementById('lblTotalCost').innerText = "Offener Betrag (Alle)";
-            totalMoney = getCurrentTotalCost();
-            for (var i = 0; i < people.length; i++) {
-                var p = people[i];
-                if (p.drinks) {
-                    for (var dId in p.drinks) {
-                        totalCount += (p.drinks[dId] || 0);
-                    }
-                }
-            }
-            document.getElementById('cashBalance').innerText = cashRegister.toFixed(2).replace('.', ',') + ' €';
-        } else if (currentUser) {
-            document.getElementById('lblTotalDrinks').innerText = "Meine Getränke";
-            document.getElementById('lblTotalCost').innerText = "Mein offener Betrag";
-            var myPerson = people.find(function(p) { return p.username === currentUser.username; });
-            if (myPerson) {
-                totalMoney = getPersonCost(myPerson);
-                if (myPerson.drinks) {
-                    for (var myDId in myPerson.drinks) {
-                        totalCount += (myPerson.drinks[myDId] || 0);
-                    }
-                }
-            }
-        }
-
-        document.getElementById('totalDrinks').innerText = totalCount;
-        document.getElementById('totalCost').innerText = totalMoney.toFixed(2).replace('.', ',') + ' €';
-    }
-
-    function formatTally(count) {
-        if (count === 0) return '0';
-        var fullGroups = Math.floor(count / 5);
-        var remainder = count % 5;
-        var res = '';
-        for (var g = 0; g < fullGroups; g++) res += '||||/ ';
-        for (var r = 0; r < remainder; r++) res += '|';
-        return res;
-    }
-
-    function renderPeople() {
-        var container = document.getElementById('peopleList');
-        container.innerHTML = '';
-
-        if (people.length === 0) {
-            container.innerHTML = '<div class="card" style="text-align:center; color:#8e8e93;">Keine Personen vorhanden.</div>';
-            return;
-        }
-
-        for (var i = 0; i < people.length; i++) {
-            var p = people[i];
-
-            if (currentUser && !currentUser.isAdmin) {
-                if (p.username !== currentUser.username) {
-                    continue;
-                }
-            }
-
-            var card = document.createElement('div');
-            card.className = 'card person-card';
-            var personTotalCost = getPersonCost(p);
-
-            var drinkRowsHtml = '';
-            for (var d = 0; d < drinkTypes.length; d++) {
-                var drink = drinkTypes[d];
-                var cnt = (p.drinks && p.drinks[drink.id]) ? p.drinks[drink.id] : 0;
-
-                drinkRowsHtml += '<div class="drink-row">' +
-                    '<div class="drink-info">' +
-                        '<span class="drink-name">' + escapeHtml(drink.name) + ' (' + drink.price.toFixed(2).replace('.', ',') + ' €)</span>' +
-                        '<span class="drink-tally">' + formatTally(cnt) + '</span>' +
-                    '</div>' +
-                    '<div class="btn-group">' +
-                        '<button class="btn-sm minus" onclick="changeCount(\'' + p.id + '\', \'' + drink.id + '\', -1)">-</button>' +
-                        '<span class="count-val">' + cnt + '</span>' +
-                        '<button class="btn-sm plus" onclick="changeCount(\'' + p.id + '\', \'' + drink.id + '\', 1)">+</button>' +
-                    '</div>' +
-                '</div>';
-            }
-
-            var adminActionsHtml = '';
-            if (currentUser && currentUser.isAdmin) {
-                adminActionsHtml = '<div class="person-actions">' +
-                    '<button class="checkout-single-btn" onclick="checkoutPerson(\'' + p.id + '\')">Einzeln abrechnen</button>' +
-                    '<button class="admin-btn" style="color:#ff3b30; border-color:#ff3b30;" onclick="deletePersonById(\'' + p.id + '\')">Person löschen</button>' +
-                '</div>';
-            }
-
-            var usernameTag = p.username ? ' <span class="person-username">(@' + escapeHtml(p.username) + ')</span>' : '';
-
-            card.innerHTML =
-                '<div class="person-header">' +
-                    '<div><span class="person-name">' + escapeHtml(p.name) + '</span>' + usernameTag + '</div>' +
-                    '<span class="person-total-cost">' + personTotalCost.toFixed(2).replace('.', ',') + ' €</span>' +
-                '</div>' +
-                '<div class="drink-rows">' + drinkRowsHtml + '</div>' +
-                adminActionsHtml;
-
-            container.appendChild(card);
-        }
-    }
+render();
 </script>
+
 </body>
 </html>

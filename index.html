@@ -99,9 +99,12 @@
 
   td.total-cell{
     position:sticky; right:0; background:var(--panel); text-align:right; padding:10px 14px;
-    font-weight:700; color:var(--amber); white-space:nowrap; min-width:90px;
+    font-weight:700; color:var(--amber); white-space:nowrap; min-width:150px;
   }
-  th.total-head{position:sticky; right:0; top:0; background:var(--panel); z-index:3; text-align:right; padding:10px 14px; min-width:90px; font-size:12px; color:var(--chalk-dim); text-transform:uppercase; letter-spacing:0.05em;}
+  td.total-cell .row{display:flex; align-items:center; justify-content:flex-end; gap:8px;}
+  th.total-head{position:sticky; right:0; top:0; background:var(--panel); z-index:3; text-align:right; padding:10px 14px; min-width:150px; font-size:12px; color:var(--chalk-dim); text-transform:uppercase; letter-spacing:0.05em;}
+  button.settle-btn{background:var(--panel-lighter); border-color:var(--amber-dark); color:var(--amber); font-size:12px; padding:5px 10px;}
+  button.settle-btn:hover{background:var(--amber); color:#2b1c05;}
 
   td.cell{
     text-align:center; vertical-align:middle; cursor:pointer; padding:6px 10px;
@@ -145,6 +148,32 @@
   .setup-box h2{font-family:'Caveat',cursive; font-size:32px; margin:0 0 12px; color:var(--amber);}
   .setup-box p{font-size:14px; line-height:1.6; color:var(--chalk-dim); margin:0 0 10px;}
   .setup-box code{background:var(--panel-light); padding:2px 5px; border-radius:4px; font-size:13px;}
+
+  .kasse{
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+    padding:18px 20px; margin-top:22px;
+  }
+  .kasse h2{font-family:'Caveat', cursive; font-size:28px; margin:0 0 4px; color:var(--chalk);}
+  .kasse .balance{font-size:34px; font-weight:700; margin:4px 0 16px;}
+  .kasse .balance.positive{color:var(--amber);}
+  .kasse .balance.negative{color:var(--rot);}
+  .kasse-form{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:16px;}
+  .kasse-form select{
+    background:var(--panel-light); border:1px solid var(--line); color:var(--chalk);
+    border-radius:6px; padding:8px 10px; font-family:'Inter',sans-serif; font-size:14px;
+  }
+  .kasse-form input[type="text"]{flex:1; min-width:140px;}
+  .kasse-form input.amount{width:100px;}
+  .tx-list{max-height:220px; overflow-y:auto; border-top:1px solid var(--line);}
+  .tx-row{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 4px; border-bottom:1px solid var(--line); font-size:13px;}
+  .tx-row .tx-note{color:var(--chalk-dim); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .tx-row .tx-date{color:var(--chalk-faint); font-size:11px; white-space:nowrap;}
+  .tx-row .tx-amount{font-weight:600; white-space:nowrap;}
+  .tx-row .tx-amount.plus{color:var(--amber);}
+  .tx-row .tx-amount.minus{color:var(--rot);}
+  .tx-row .del{opacity:0; transition:opacity .15s;}
+  .tx-row:hover .del{opacity:1;}
+  .tx-empty{padding:14px 4px; color:var(--chalk-faint); font-size:13px;}
 
   @media (max-width:600px){
     header h1{font-size:38px;}
@@ -195,9 +224,24 @@
   </div>
 
   <footer class="summary">
-    <div class="grand-total">Gesamt: <b id="grand-total">0,00 €</b></div>
+    <div class="grand-total">Offene Striche: <b id="grand-total">0,00 €</b></div>
     <button class="danger-btn" id="reset-all">Alles zurücksetzen</button>
   </footer>
+
+  <section class="kasse">
+    <h2>Virtueller Kassenbestand</h2>
+    <div class="balance" id="kasse-balance">0,00 €</div>
+    <div class="kasse-form">
+      <select id="tx-type">
+        <option value="ausgabe">Ausgabe</option>
+        <option value="einnahme">Einnahme (manuell)</option>
+      </select>
+      <input type="text" id="tx-note" placeholder="Beschreibung, z. B. Getränkeeinkauf">
+      <input type="number" id="tx-amount" class="amount" placeholder="Betrag" step="0.10" min="0">
+      <button class="primary" id="tx-add">Buchen</button>
+    </div>
+    <div class="tx-list" id="tx-list"></div>
+  </section>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -209,6 +253,8 @@
    Firebase-Projekt (Konsole → Projekteinstellungen → Meine Apps).
    Siehe README.md für die Schritt-für-Schritt-Anleitung.
    ============================================================ */
+
+// Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyC_IpuPtm16j7OpMxga4_7s4aJ9wDLAZiE",
   authDomain: "bierliste-tvb.firebaseapp.com",
@@ -218,7 +264,6 @@ const firebaseConfig = {
   messagingSenderId: "203383350718",
   appId: "1:203383350718:web:f9b2de01d99e5c4588c5ef"
 };
-
 const isConfigured = !Object.values(firebaseConfig).some(v => String(v).startsWith("DEIN"));
 if (!isConfigured) {
   document.getElementById('setup').style.display = 'flex';
@@ -231,6 +276,7 @@ const db = firebase.firestore();
 let persons = [];
 let drinks = [];
 let tallies = {};
+let transactions = [];
 
 const statusEl = document.getElementById('status');
 const statusText = document.getElementById('status-text');
@@ -270,6 +316,23 @@ db.collection('tallies').onSnapshot(snap => {
   checkFirstLoad();
   render();
 }, () => setStatus(false));
+
+db.collection('transactions').orderBy('createdAt', 'desc').onSnapshot(snap => {
+  transactions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  renderKasse();
+}, () => setStatus(false));
+
+const SETTLE_PASSWORD = "010422";
+
+function checkPassword(actionLabel){
+  const input = prompt('Passwort erforderlich, um ' + actionLabel + ':');
+  if (input === null) return false;
+  if (input !== SETTLE_PASSWORD){
+    alert('Falsches Passwort.');
+    return false;
+  }
+  return true;
+}
 
 function tallyKey(personId, drinkId){ return personId + '_' + drinkId; }
 
@@ -340,10 +403,82 @@ async function decrementTally(personId, drinkId){
 }
 
 async function resetAll(){
+  if (!checkPassword('alle Striche zurückzusetzen')) return;
   if (!confirm('Wirklich ALLE Striche für ALLE Personen zurücksetzen? Personen und Getränke bleiben erhalten.')) return;
   const batch = db.batch();
   Object.keys(tallies).forEach(key => batch.delete(db.collection('tallies').doc(key)));
   await batch.commit();
+}
+
+async function settlePerson(personId){
+  const p = persons.find(x => x.id === personId);
+  if (!p) return;
+  const total = personTotal(personId);
+  if (total <= 0){
+    alert('„' + p.name + '" hat noch keine offenen Striche.');
+    return;
+  }
+  if (!checkPassword('„' + p.name + '" abzurechnen')) return;
+  if (!confirm('„' + p.name + '" jetzt für ' + formatEuro(total) + ' abrechnen? Alle Striche dieser Person werden zurückgesetzt.')) return;
+  const batch = db.batch();
+  Object.keys(tallies).forEach(key => {
+    if (tallies[key].personId === personId) batch.delete(db.collection('tallies').doc(key));
+  });
+  batch.set(db.collection('transactions').doc(), {
+    type: 'einnahme',
+    note: p.name,
+    amount: total,
+    createdAt: Date.now()
+  });
+  await batch.commit();
+}
+
+async function addTransaction(){
+  const typeSelect = document.getElementById('tx-type');
+  const noteInput = document.getElementById('tx-note');
+  const amountInput = document.getElementById('tx-amount');
+  const type = typeSelect.value;
+  const note = noteInput.value.trim();
+  const amount = parseFloat(amountInput.value);
+  if (!note || isNaN(amount) || amount <= 0) return;
+  await db.collection('transactions').add({ type, note, amount, createdAt: Date.now() });
+  noteInput.value = '';
+  amountInput.value = '';
+  noteInput.focus();
+}
+
+async function deleteTransaction(id){
+  const tx = transactions.find(t => t.id === id);
+  if (!tx) return;
+  if (!confirm('Buchung „' + tx.note + '" (' + formatEuro(tx.amount) + ') wirklich löschen?')) return;
+  await db.collection('transactions').doc(id).delete();
+}
+
+function renderKasse(){
+  const balance = transactions.reduce((sum, t) => sum + (t.type === 'einnahme' ? t.amount : -t.amount), 0);
+  const balanceEl = document.getElementById('kasse-balance');
+  balanceEl.textContent = formatEuro(balance);
+  balanceEl.classList.toggle('positive', balance >= 0);
+  balanceEl.classList.toggle('negative', balance < 0);
+
+  const list = document.getElementById('tx-list');
+  if (transactions.length === 0){
+    list.innerHTML = '<div class="tx-empty">Noch keine Buchungen.</div>';
+    return;
+  }
+  list.innerHTML = transactions.map(t => {
+    const date = new Date(t.createdAt).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    const sign = t.type === 'einnahme' ? '+' : '−';
+    const cls = t.type === 'einnahme' ? 'plus' : 'minus';
+    return `
+      <div class="tx-row">
+        <span class="tx-date">${date}</span>
+        <span class="tx-note">${escapeHtml(t.note)}</span>
+        <span class="tx-amount ${cls}">${sign} ${formatEuro(t.amount)}</span>
+        <button class="del ghost" data-del-tx="${t.id}" style="font-size:11px; padding:2px 8px;">×</button>
+      </div>
+    `;
+  }).join('');
 }
 
 function renderTallyMarks(count){
@@ -413,7 +548,12 @@ function render(){
             </div>
           </td>`;
         }).join('')}
-        <td class="total-cell">${formatEuro(personTotal(p.id))}</td>
+        <td class="total-cell">
+          <div class="row">
+            <span>${formatEuro(personTotal(p.id))}</span>
+            <button class="settle-btn" data-settle="${p.id}">abrechnen</button>
+          </div>
+        </td>
       </tr>
     `).join('');
   }
@@ -433,13 +573,26 @@ document.getElementById('person-name').addEventListener('keydown', e => { if (e.
 document.getElementById('add-drink').addEventListener('click', addDrink);
 document.getElementById('drink-price').addEventListener('keydown', e => { if (e.key === 'Enter') addDrink(); });
 document.getElementById('reset-all').addEventListener('click', resetAll);
+document.getElementById('tx-add').addEventListener('click', addTransaction);
+document.getElementById('tx-amount').addEventListener('keydown', e => { if (e.key === 'Enter') addTransaction(); });
+document.getElementById('tx-list').addEventListener('click', e => {
+  const delTx = e.target.closest('[data-del-tx]');
+  if (delTx) deleteTransaction(delTx.dataset.delTx);
+});
 
 document.getElementById('board-body').addEventListener('click', e => {
   const decBtn = e.target.closest('[data-dec]');
   if (decBtn){
     e.stopPropagation();
+    if (!checkPassword('einen Strich zu entfernen')) return;
     const [personId, drinkId] = decBtn.dataset.dec.split('|');
     decrementTally(personId, drinkId);
+    return;
+  }
+  const settleBtn = e.target.closest('[data-settle]');
+  if (settleBtn){
+    e.stopPropagation();
+    settlePerson(settleBtn.dataset.settle);
     return;
   }
   const delPerson = e.target.closest('[data-del-person]');

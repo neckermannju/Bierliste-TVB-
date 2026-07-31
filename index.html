@@ -256,14 +256,16 @@
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyC_IpuPtm16j7OpMxga4_7s4aJ9wDLAZiE",
-  authDomain: "bierliste-tvb.firebaseapp.com",
-  databaseURL: "https://bierliste-tvb-default-rtdb.firebaseio.com",
-  projectId: "bierliste-tvb",
-  storageBucket: "bierliste-tvb.firebasestorage.app",
-  messagingSenderId: "203383350718",
-  appId: "1:203383350718:web:f9b2de01d99e5c4588c5ef"
+  apiKey: "AIzaSyBj3jI1PzVzBe_XIy4on4gc3zpwfGml4AE",
+  authDomain: "strichliste-4afe6.firebaseapp.com",
+  projectId: "strichliste-4afe6",
+  storageBucket: "strichliste-4afe6.firebasestorage.app",
+  messagingSenderId: "1070678845280",
+  appId: "1:1070678845280:web:3ac10fb88d42c36efea005",
+  measurementId: "G-3BYV5V3TYX"
 };
+
+  
 const isConfigured = !Object.values(firebaseConfig).some(v => String(v).startsWith("DEIN"));
 if (!isConfigured) {
   document.getElementById('setup').style.display = 'flex';

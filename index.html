@@ -219,9 +219,6 @@ const firebaseConfig = {
   appId: "1:203383350718:web:f9b2de01d99e5c4588c5ef"
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-
 const isConfigured = !Object.values(firebaseConfig).some(v => String(v).startsWith("DEIN"));
 if (!isConfigured) {
   document.getElementById('setup').style.display = 'flex';

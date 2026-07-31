@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Strichliste</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#182620;
+    --panel:#213228;
+    --panel-light:#2b3f31;
+    --panel-lighter:#354a3b;
+    --chalk:#f2ead9;
+    --chalk-dim:#a9baa9;
+    --chalk-faint:#7c8c7e;
+    --amber:#e2a33d;
+    --amber-dark:#b9822c;
+    --rot:#c1573f;
+    --line: rgba(242,234,217,0.14);
+    --radius: 10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(circle at 15% 0%, rgba(226,163,61,0.06), transparent 40%),
+      var(--bg);
+    color:var(--chalk);
+    font-family:'Inter', sans-serif;
+    min-height:100vh;
+    padding-bottom:60px;
+  }
+  .wrap{max-width:1100px; margin:0 auto; padding:28px 20px 0;}
+
+  header{display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:16px; margin-bottom:24px; border-bottom:3px double var(--line); padding-bottom:18px;}
+  header h1{
+    font-family:'Caveat', cursive; font-weight:700; font-size:52px; line-height:1;
+    margin:0; color:var(--chalk); letter-spacing:0.5px;
+  }
+  header .subtitle{font-size:13px; color:var(--chalk-dim); margin-top:4px;}
+  .status{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--chalk-dim);}
+  .status .dot{width:8px; height:8px; border-radius:50%; background:var(--chalk-faint); flex:none;}
+  .status.online .dot{background:#7ec98f; box-shadow:0 0 6px rgba(126,201,143,0.6);}
+  .status.offline .dot{background:var(--rot);}
+
+  .toolbar{display:flex; gap:12px; flex-wrap:wrap; margin-bottom:22px;}
+  .card-form{
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+    padding:14px 16px; display:flex; align-items:center; gap:8px; flex:1; min-width:260px;
+  }
+  .card-form .label{font-size:12px; text-transform:uppercase; letter-spacing:0.06em; color:var(--chalk-dim); white-space:nowrap; margin-right:2px;}
+  input[type="text"], input[type="number"]{
+    background:var(--panel-light); border:1px solid var(--line); color:var(--chalk);
+    border-radius:6px; padding:8px 10px; font-family:'Inter',sans-serif; font-size:14px;
+    outline:none; min-width:0;
+  }
+  input[type="text"]:focus, input[type="number"]:focus{border-color:var(--amber);}
+  input::placeholder{color:var(--chalk-faint);}
+  .card-form input[type="text"]{flex:1;}
+  .card-form input.price{width:80px;}
+  button{
+    font-family:'Inter', sans-serif; font-size:14px; font-weight:600; cursor:pointer;
+    border-radius:6px; border:1px solid var(--line); padding:8px 14px;
+    background:var(--panel-lighter); color:var(--chalk); transition:background .15s, transform .1s;
+  }
+  button:hover{background:var(--panel-lighter); filter:brightness(1.15);}
+  button:active{transform:scale(0.97);}
+  button.primary{background:var(--amber); color:#2b1c05; border-color:var(--amber-dark);}
+  button.primary:hover{background:#eab358;}
+  button.ghost{background:transparent;}
+  button.danger-btn{background:transparent; border-color:var(--rot); color:var(--rot);}
+  button.danger-btn:hover{background:rgba(193,87,63,0.15);}
+
+  .board-scroll{overflow-x:auto; border-radius:var(--radius); border:1px solid var(--line); background:var(--panel);}
+  table.board{border-collapse:collapse; width:100%; min-width:560px;}
+  table.board th, table.board td{padding:0; border-bottom:1px solid var(--line); border-right:1px solid var(--line);}
+  table.board th:last-child, table.board td:last-child{border-right:none;}
+
+  th.corner{background:var(--panel); position:sticky; left:0; top:0; z-index:3; min-width:150px;}
+  th.drink-head{
+    position:sticky; top:0; background:var(--panel); z-index:2; padding:10px 14px; min-width:120px;
+    text-align:center; vertical-align:top;
+  }
+  th.drink-head .name{font-weight:600; font-size:14px;}
+  th.drink-head .price{font-size:12px; color:var(--amber); margin-top:2px;}
+  th.drink-head .del{opacity:0; transition:opacity .15s; margin-top:6px;}
+  th.drink-head:hover .del{opacity:1;}
+
+  td.person-cell{
+    position:sticky; left:0; background:var(--panel); z-index:1; padding:10px 14px;
+    font-weight:600; font-size:14px; min-width:150px; white-space:nowrap;
+  }
+  td.person-cell .row{display:flex; align-items:center; justify-content:space-between; gap:8px;}
+  td.person-cell .del{opacity:0; transition:opacity .15s; flex:none;}
+  tr:hover td.person-cell .del{opacity:1;}
+
+  td.total-cell{
+    position:sticky; right:0; background:var(--panel); text-align:right; padding:10px 14px;
+    font-weight:700; color:var(--amber); white-space:nowrap; min-width:90px;
+  }
+  th.total-head{position:sticky; right:0; top:0; background:var(--panel); z-index:3; text-align:right; padding:10px 14px; min-width:90px; font-size:12px; color:var(--chalk-dim); text-transform:uppercase; letter-spacing:0.05em;}
+
+  td.cell{
+    text-align:center; vertical-align:middle; cursor:pointer; padding:6px 10px;
+    transition:background .12s; position:relative; min-width:120px;
+  }
+  td.cell:hover{background:var(--panel-light);}
+  td.cell:focus-visible{outline:2px solid var(--amber); outline-offset:-2px;}
+  .cell-inner{display:flex; flex-direction:column; align-items:center; gap:4px; min-height:38px; justify-content:center;}
+  .empty-mark{color:var(--chalk-faint); font-size:20px; line-height:1;}
+  .tally-wrap{display:flex; gap:5px; flex-wrap:wrap; align-items:flex-end; justify-content:center; max-width:200px;}
+  .tally-group{position:relative; display:flex; gap:2px; padding:2px 3px;}
+  .tally-bar{width:2.5px; height:18px; background:var(--chalk); border-radius:1px;}
+  .tally-bar:nth-child(4n+1){transform:rotate(-3deg);}
+  .tally-bar:nth-child(4n+2){transform:rotate(2deg);}
+  .tally-bar:nth-child(4n+3){transform:rotate(-2deg);}
+  .tally-bar:nth-child(4n+4){transform:rotate(3deg);}
+  .tally-diagonal{position:absolute; top:1px; left:-1px; width:calc(100% + 2px); height:2.5px; background:var(--amber); transform:rotate(-27deg); border-radius:1px;}
+  .cell-meta{display:flex; align-items:center; gap:6px; font-size:11px; color:var(--chalk-dim);}
+  .minus-btn{
+    width:18px; height:18px; border-radius:50%; border:1px solid var(--line); background:var(--panel-lighter);
+    color:var(--chalk-dim); font-size:12px; line-height:1; display:flex; align-items:center; justify-content:center;
+    opacity:0.5; transition:opacity .15s;
+  }
+  td.cell:hover .minus-btn{opacity:1;}
+  .minus-btn:disabled{visibility:hidden;}
+
+  .empty-state{padding:40px 20px; text-align:center; color:var(--chalk-dim); font-size:14px;}
+
+  footer.summary{
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px;
+    margin-top:20px; padding-top:16px; border-top:3px double var(--line);
+  }
+  .grand-total{font-family:'Caveat', cursive; font-size:30px; color:var(--chalk);}
+  .grand-total b{color:var(--amber); font-weight:700;}
+
+  .setup-overlay{
+    position:fixed; inset:0; background:rgba(10,16,12,0.92); display:flex; align-items:center; justify-content:center;
+    padding:20px; z-index:50;
+  }
+  .setup-box{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:28px; max-width:520px;}
+  .setup-box h2{font-family:'Caveat',cursive; font-size:32px; margin:0 0 12px; color:var(--amber);}
+  .setup-box p{font-size:14px; line-height:1.6; color:var(--chalk-dim); margin:0 0 10px;}
+  .setup-box code{background:var(--panel-light); padding:2px 5px; border-radius:4px; font-size:13px;}
+
+  @media (max-width:600px){
+    header h1{font-size:38px;}
+    .card-form{flex-direction:column; align-items:stretch;}
+    .card-form .label{margin:0 0 2px;}
+  }
+</style>
+</head>
+<body>
+
+<div id="setup" class="setup-overlay" style="display:none;">
+  <div class="setup-box">
+    <h2>Fast fertig</h2>
+    <p>Diese Strichliste braucht noch deine Firebase-Zugangsdaten, bevor sie loslegen kann.</p>
+    <p>Öffne <code>index.html</code>, suche den Abschnitt <code>firebaseConfig</code> am Anfang des Scripts und trage dort die Werte aus deinem Firebase-Projekt ein (Projekteinstellungen → Allgemein → „Meine Apps" → Web-App).</p>
+    <p>Details dazu stehen in der <code>README.md</code>.</p>
+  </div>
+</div>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>🍺 Strichliste</h1>
+      <div class="subtitle">Getränke antippen, Strich machen, Runde zahlen.</div>
+    </div>
+    <div class="status" id="status"><span class="dot"></span><span id="status-text">Verbinde …</span></div>
+  </header>
+
+  <div class="toolbar">
+    <div class="card-form">
+      <span class="label">Person</span>
+      <input type="text" id="person-name" placeholder="Name eingeben" maxlength="30">
+      <button class="primary" id="add-person">+ Person</button>
+    </div>
+    <div class="card-form">
+      <span class="label">Getränk</span>
+      <input type="text" id="drink-name" placeholder="z. B. Pils" maxlength="24">
+      <input type="number" id="drink-price" class="price" placeholder="Preis" step="0.10" min="0">
+      <button class="primary" id="add-drink">+ Getränk</button>
+    </div>
+  </div>
+
+  <div class="board-scroll">
+    <table class="board" id="board">
+      <thead><tr id="board-head"></tr></thead>
+      <tbody id="board-body"></tbody>
+    </table>
+  </div>
+
+  <footer class="summary">
+    <div class="grand-total">Gesamt: <b id="grand-total">0,00 €</b></div>
+    <button class="danger-btn" id="reset-all">Alles zurücksetzen</button>
+  </footer>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+/* ============================================================
+   FIREBASE-KONFIGURATION
+   Ersetze die Platzhalter unten mit den Werten aus deinem
+   Firebase-Projekt (Konsole → Projekteinstellungen → Meine Apps).
+   Siehe README.md für die Schritt-für-Schritt-Anleitung.
+   ============================================================ */
+const firebaseConfig = {
+  apiKey: "DEIN_API_KEY",
+  authDomain: "DEIN_PROJEKT.firebaseapp.com",
+  projectId: "DEIN_PROJEKT",
+  storageBucket: "DEIN_PROJEKT.appspot.com",
+  messagingSenderId: "DEINE_SENDER_ID",
+  appId: "DEINE_APP_ID"
+};
+
+const isConfigured = !Object.values(firebaseConfig).some(v => String(v).startsWith("DEIN"));
+if (!isConfigured) {
+  document.getElementById('setup').style.display = 'flex';
+  throw new Error("Firebase ist noch nicht konfiguriert. Siehe README.md.");
+}
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+let persons = [];
+let drinks = [];
+let tallies = {};
+
+const statusEl = document.getElementById('status');
+const statusText = document.getElementById('status-text');
+
+function setStatus(online){
+  statusEl.classList.toggle('online', online);
+  statusEl.classList.toggle('offline', !online);
+  statusText.textContent = online ? 'Live verbunden' : 'Offline';
+}
+
+window.addEventListener('online', () => setStatus(true));
+window.addEventListener('offline', () => setStatus(false));
+
+let personsLoaded = false, drinksLoaded = false, talliesLoaded = false;
+function checkFirstLoad(){
+  if (personsLoaded && drinksLoaded && talliesLoaded) setStatus(navigator.onLine);
+}
+
+db.collection('persons').orderBy('createdAt').onSnapshot(snap => {
+  persons = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  personsLoaded = true;
+  checkFirstLoad();
+  render();
+}, () => setStatus(false));
+
+db.collection('drinks').orderBy('createdAt').onSnapshot(snap => {
+  drinks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  drinksLoaded = true;
+  checkFirstLoad();
+  render();
+}, () => setStatus(false));
+
+db.collection('tallies').onSnapshot(snap => {
+  tallies = {};
+  snap.docs.forEach(d => { tallies[d.id] = d.data(); });
+  talliesLoaded = true;
+  checkFirstLoad();
+  render();
+}, () => setStatus(false));
+
+function tallyKey(personId, drinkId){ return personId + '_' + drinkId; }
+
+function getCount(personId, drinkId){
+  const t = tallies[tallyKey(personId, drinkId)];
+  return t && t.count > 0 ? t.count : 0;
+}
+
+async function addPerson(){
+  const input = document.getElementById('person-name');
+  const name = input.value.trim();
+  if (!name) return;
+  await db.collection('persons').add({ name, createdAt: Date.now() });
+  input.value = '';
+  input.focus();
+}
+
+async function addDrink(){
+  const nameInput = document.getElementById('drink-name');
+  const priceInput = document.getElementById('drink-price');
+  const name = nameInput.value.trim();
+  const price = parseFloat(priceInput.value);
+  if (!name || isNaN(price) || price < 0) return;
+  await db.collection('drinks').add({ name, price, createdAt: Date.now() });
+  nameInput.value = '';
+  priceInput.value = '';
+  nameInput.focus();
+}
+
+async function deletePerson(id){
+  const p = persons.find(x => x.id === id);
+  if (!p || !confirm('„' + p.name + '" wirklich löschen? Alle Striche dieser Person gehen verloren.')) return;
+  const batch = db.batch();
+  batch.delete(db.collection('persons').doc(id));
+  Object.keys(tallies).forEach(key => {
+    if (tallies[key].personId === id) batch.delete(db.collection('tallies').doc(key));
+  });
+  await batch.commit();
+}
+
+async function deleteDrink(id){
+  const d = drinks.find(x => x.id === id);
+  if (!d || !confirm('„' + d.name + '" wirklich löschen? Alle Striche zu diesem Getränk gehen verloren.')) return;
+  const batch = db.batch();
+  batch.delete(db.collection('drinks').doc(id));
+  Object.keys(tallies).forEach(key => {
+    if (tallies[key].drinkId === id) batch.delete(db.collection('tallies').doc(key));
+  });
+  await batch.commit();
+}
+
+async function incrementTally(personId, drinkId){
+  const key = tallyKey(personId, drinkId);
+  await db.collection('tallies').doc(key).set({
+    personId, drinkId,
+    count: firebase.firestore.FieldValue.increment(1)
+  }, { merge: true });
+}
+
+async function decrementTally(personId, drinkId){
+  const key = tallyKey(personId, drinkId);
+  const current = getCount(personId, drinkId);
+  if (current <= 0) return;
+  await db.collection('tallies').doc(key).set({
+    personId, drinkId,
+    count: firebase.firestore.FieldValue.increment(-1)
+  }, { merge: true });
+}
+
+async function resetAll(){
+  if (!confirm('Wirklich ALLE Striche für ALLE Personen zurücksetzen? Personen und Getränke bleiben erhalten.')) return;
+  const batch = db.batch();
+  Object.keys(tallies).forEach(key => batch.delete(db.collection('tallies').doc(key)));
+  await batch.commit();
+}
+
+function renderTallyMarks(count){
+  if (count <= 0) return '<span class="empty-mark">–</span>';
+  const fullGroups = Math.floor(count / 5);
+  const remainder = count % 5;
+  let html = '<div class="tally-wrap">';
+  for (let g = 0; g < fullGroups; g++){
+    html += '<div class="tally-group">';
+    for (let i = 0; i < 4; i++) html += '<div class="tally-bar"></div>';
+    html += '<div class="tally-diagonal"></div></div>';
+  }
+  if (remainder > 0){
+    html += '<div class="tally-group">';
+    for (let i = 0; i < remainder; i++) html += '<div class="tally-bar"></div>';
+    html += '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+function formatEuro(n){
+  return n.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+}
+
+function personTotal(personId){
+  return drinks.reduce((sum, d) => sum + getCount(personId, d.id) * d.price, 0);
+}
+
+function render(){
+  const head = document.getElementById('board-head');
+  const body = document.getElementById('board-body');
+
+  head.innerHTML = '<th class="corner">Person</th>' +
+    drinks.map(d => `
+      <th class="drink-head">
+        <div class="name">${escapeHtml(d.name)}</div>
+        <div class="price">${formatEuro(d.price)}</div>
+        <button class="del ghost" data-del-drink="${d.id}" style="font-size:11px; padding:2px 8px;">löschen</button>
+      </th>
+    `).join('') +
+    '<th class="total-head">Summe</th>';
+
+  if (persons.length === 0){
+    body.innerHTML = `<tr><td colspan="${drinks.length + 2}"><div class="empty-state">Noch keine Personen. Oben eine Person hinzufügen, um loszulegen.</div></td></tr>`;
+  } else if (drinks.length === 0){
+    body.innerHTML = `<tr><td colspan="2"><div class="empty-state">Noch keine Getränke. Oben ein Getränk mit Preis hinzufügen.</div></td></tr>`;
+  } else {
+    body.innerHTML = persons.map(p => `
+      <tr>
+        <td class="person-cell">
+          <div class="row">
+            <span>${escapeHtml(p.name)}</span>
+            <button class="del ghost" data-del-person="${p.id}" style="font-size:11px; padding:2px 8px;">×</button>
+          </div>
+        </td>
+        ${drinks.map(d => {
+          const count = getCount(p.id, d.id);
+          return `
+          <td class="cell" tabindex="0" role="button" data-inc="${p.id}|${d.id}" aria-label="${escapeHtml(d.name)} für ${escapeHtml(p.name)} hinzufügen">
+            <div class="cell-inner">
+              ${renderTallyMarks(count)}
+              <div class="cell-meta">
+                <span>${count}</span>
+                <button class="minus-btn" data-dec="${p.id}|${d.id}" ${count === 0 ? 'disabled' : ''} aria-label="Einen Strich entfernen">−</button>
+              </div>
+            </div>
+          </td>`;
+        }).join('')}
+        <td class="total-cell">${formatEuro(personTotal(p.id))}</td>
+      </tr>
+    `).join('');
+  }
+
+  const grand = persons.reduce((sum, p) => sum + personTotal(p.id), 0);
+  document.getElementById('grand-total').textContent = formatEuro(grand);
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+document.getElementById('add-person').addEventListener('click', addPerson);
+document.getElementById('person-name').addEventListener('keydown', e => { if (e.key === 'Enter') addPerson(); });
+document.getElementById('add-drink').addEventListener('click', addDrink);
+document.getElementById('drink-price').addEventListener('keydown', e => { if (e.key === 'Enter') addDrink(); });
+document.getElementById('reset-all').addEventListener('click', resetAll);
+
+document.getElementById('board-body').addEventListener('click', e => {
+  const decBtn = e.target.closest('[data-dec]');
+  if (decBtn){
+    e.stopPropagation();
+    const [personId, drinkId] = decBtn.dataset.dec.split('|');
+    decrementTally(personId, drinkId);
+    return;
+  }
+  const delPerson = e.target.closest('[data-del-person]');
+  if (delPerson){
+    e.stopPropagation();
+    deletePerson(delPerson.dataset.delPerson);
+    return;
+  }
+  const cell = e.target.closest('[data-inc]');
+  if (cell){
+    const [personId, drinkId] = cell.dataset.inc.split('|');
+    incrementTally(personId, drinkId);
+  }
+});
+
+document.getElementById('board-body').addEventListener('keydown', e => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const cell = e.target.closest('[data-inc]');
+  if (cell){
+    e.preventDefault();
+    const [personId, drinkId] = cell.dataset.inc.split('|');
+    incrementTally(personId, drinkId);
+  }
+});
+
+document.getElementById('board-head').addEventListener('click', e => {
+  const delDrink = e.target.closest('[data-del-drink]');
+  if (delDrink) deleteDrink(delDrink.dataset.delDrink);
+});
+</script>
+</body>
+</html>

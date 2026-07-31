@@ -175,10 +175,54 @@
   .tx-row:hover .del{opacity:1;}
   .tx-empty{padding:14px 4px; color:var(--chalk-faint); font-size:13px;}
 
-  @media (max-width:600px){
-    header h1{font-size:38px;}
+  .drink-chips{display:none; flex-wrap:wrap; gap:8px; margin:-8px 0 18px;}
+  .drink-chip{
+    display:flex; align-items:center; gap:6px; background:var(--panel); border:1px solid var(--line);
+    border-radius:20px; padding:6px 8px 6px 14px; font-size:13px;
+  }
+  .drink-chip .chip-price{color:var(--amber);}
+  .drink-chip .chip-del{
+    width:20px; height:20px; border-radius:50%; border:none; background:var(--panel-lighter);
+    color:var(--chalk-dim); font-size:13px; line-height:1; display:flex; align-items:center; justify-content:center;
+  }
+
+  @media (max-width:720px){
+    header h1{font-size:36px;}
     .card-form{flex-direction:column; align-items:stretch;}
     .card-form .label{margin:0 0 2px;}
+
+    .drink-chips{display:flex;}
+
+    .board-scroll{overflow-x:visible; border:none; background:none;}
+    table.board, table.board thead, table.board tbody, table.board tr,
+    table.board th, table.board td{display:block; width:100%;}
+    table.board thead{display:none;}
+    table.board tr{
+      background:var(--panel); border:1px solid var(--line); border-radius:12px;
+      margin-bottom:14px; padding:6px 4px; overflow:hidden;
+    }
+    td.person-cell{
+      position:static; background:transparent; padding:12px 14px 10px; font-size:16px;
+      border-bottom:1px dashed var(--line);
+    }
+    td.cell{
+      position:static; display:flex; align-items:center; justify-content:space-between;
+      text-align:left; padding:10px 14px; min-width:0; min-height:44px;
+    }
+    td.cell::before{
+      content:attr(data-label); font-weight:600; color:var(--chalk-dim); font-size:13px;
+      flex:0 0 42%; padding-right:8px;
+    }
+    .cell-inner{flex-direction:row; min-height:auto; justify-content:flex-end; flex:1;}
+    .tally-wrap{justify-content:flex-end;}
+    td.total-cell{
+      position:static; background:transparent; text-align:left; border-top:1px dashed var(--line);
+      padding:10px 14px;
+    }
+    td.total-cell .row{justify-content:space-between;}
+    td.person-cell .del{opacity:1;}
+    .kasse-form{flex-direction:column; align-items:stretch;}
+    .kasse-form select, .kasse-form input{width:100%;}
   }
 </style>
 </head>
@@ -216,6 +260,8 @@
     </div>
   </div>
 
+  <div class="drink-chips" id="drink-chips"></div>
+
   <div class="board-scroll">
     <table class="board" id="board">
       <thead><tr id="board-head"></tr></thead>
@@ -248,6 +294,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
 
+  
 const firebaseConfig = {
   apiKey: "AIzaSyBj3jI1PzVzBe_XIy4on4gc3zpwfGml4AE",
   authDomain: "strichliste-4afe6.firebaseapp.com",
@@ -258,7 +305,6 @@ const firebaseConfig = {
   measurementId: "G-3BYV5V3TYX"
 };
 
-  
 const isConfigured = !Object.values(firebaseConfig).some(v => String(v).startsWith("DEIN"));
 if (!isConfigured) {
   document.getElementById('setup').style.display = 'flex';
@@ -290,19 +336,31 @@ function checkFirstLoad(){
   if (personsLoaded && drinksLoaded && talliesLoaded) setStatus(navigator.onLine);
 }
 
+let snapshotErrorShown = false;
+function handleSnapshotError(err){
+  setStatus(false);
+  console.error(err);
+  if (!snapshotErrorShown){
+    snapshotErrorShown = true;
+    alert('Verbindung zu Firestore fehlgeschlagen: ' + (err && err.message ? err.message : err) +
+      '\n\nPrüfe in der Firebase-Konsole, ob die Firestore-Datenbank angelegt ist, ' +
+      'die firebaseConfig-Werte stimmen und die Sicherheitsregeln Lesezugriff erlauben.');
+  }
+}
+
 db.collection('persons').orderBy('createdAt').onSnapshot(snap => {
   persons = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   personsLoaded = true;
   checkFirstLoad();
   render();
-}, () => setStatus(false));
+}, handleSnapshotError);
 
 db.collection('drinks').orderBy('createdAt').onSnapshot(snap => {
   drinks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   drinksLoaded = true;
   checkFirstLoad();
   render();
-}, () => setStatus(false));
+}, handleSnapshotError);
 
 db.collection('tallies').onSnapshot(snap => {
   tallies = {};
@@ -310,14 +368,29 @@ db.collection('tallies').onSnapshot(snap => {
   talliesLoaded = true;
   checkFirstLoad();
   render();
-}, () => setStatus(false));
+}, handleSnapshotError);
 
 db.collection('transactions').orderBy('createdAt', 'desc').onSnapshot(snap => {
   transactions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   renderKasse();
-}, () => setStatus(false));
+}, handleSnapshotError);
 
 const SETTLE_PASSWORD = "010422";
+
+function showFirestoreError(err){
+  console.error(err);
+  alert('Speichern fehlgeschlagen: ' + (err && err.message ? err.message : err) +
+    '\n\nPrüfe in der Firebase-Konsole, ob die Firestore-Datenbank angelegt ist, ' +
+    'die firebaseConfig-Werte stimmen und die Sicherheitsregeln Schreibzugriff erlauben.');
+}
+
+async function safeWrite(fn){
+  try {
+    await fn();
+  } catch (err) {
+    showFirestoreError(err);
+  }
+}
 
 function checkPassword(actionLabel){
   const input = prompt('Passwort erforderlich, um ' + actionLabel + ':');
@@ -340,9 +413,11 @@ async function addPerson(){
   const input = document.getElementById('person-name');
   const name = input.value.trim();
   if (!name) return;
-  await db.collection('persons').add({ name, createdAt: Date.now() });
-  input.value = '';
-  input.focus();
+  await safeWrite(async () => {
+    await db.collection('persons').add({ name, createdAt: Date.now() });
+    input.value = '';
+    input.focus();
+  });
 }
 
 async function addDrink(){
@@ -351,58 +426,70 @@ async function addDrink(){
   const name = nameInput.value.trim();
   const price = parseFloat(priceInput.value);
   if (!name || isNaN(price) || price < 0) return;
-  await db.collection('drinks').add({ name, price, createdAt: Date.now() });
-  nameInput.value = '';
-  priceInput.value = '';
-  nameInput.focus();
+  await safeWrite(async () => {
+    await db.collection('drinks').add({ name, price, createdAt: Date.now() });
+    nameInput.value = '';
+    priceInput.value = '';
+    nameInput.focus();
+  });
 }
 
 async function deletePerson(id){
   const p = persons.find(x => x.id === id);
   if (!p || !confirm('„' + p.name + '" wirklich löschen? Alle Striche dieser Person gehen verloren.')) return;
-  const batch = db.batch();
-  batch.delete(db.collection('persons').doc(id));
-  Object.keys(tallies).forEach(key => {
-    if (tallies[key].personId === id) batch.delete(db.collection('tallies').doc(key));
+  await safeWrite(async () => {
+    const batch = db.batch();
+    batch.delete(db.collection('persons').doc(id));
+    Object.keys(tallies).forEach(key => {
+      if (tallies[key].personId === id) batch.delete(db.collection('tallies').doc(key));
+    });
+    await batch.commit();
   });
-  await batch.commit();
 }
 
 async function deleteDrink(id){
   const d = drinks.find(x => x.id === id);
   if (!d || !confirm('„' + d.name + '" wirklich löschen? Alle Striche zu diesem Getränk gehen verloren.')) return;
-  const batch = db.batch();
-  batch.delete(db.collection('drinks').doc(id));
-  Object.keys(tallies).forEach(key => {
-    if (tallies[key].drinkId === id) batch.delete(db.collection('tallies').doc(key));
+  await safeWrite(async () => {
+    const batch = db.batch();
+    batch.delete(db.collection('drinks').doc(id));
+    Object.keys(tallies).forEach(key => {
+      if (tallies[key].drinkId === id) batch.delete(db.collection('tallies').doc(key));
+    });
+    await batch.commit();
   });
-  await batch.commit();
 }
 
 async function incrementTally(personId, drinkId){
   const key = tallyKey(personId, drinkId);
-  await db.collection('tallies').doc(key).set({
-    personId, drinkId,
-    count: firebase.firestore.FieldValue.increment(1)
-  }, { merge: true });
+  await safeWrite(async () => {
+    await db.collection('tallies').doc(key).set({
+      personId, drinkId,
+      count: firebase.firestore.FieldValue.increment(1)
+    }, { merge: true });
+  });
 }
 
 async function decrementTally(personId, drinkId){
   const key = tallyKey(personId, drinkId);
   const current = getCount(personId, drinkId);
   if (current <= 0) return;
-  await db.collection('tallies').doc(key).set({
-    personId, drinkId,
-    count: firebase.firestore.FieldValue.increment(-1)
-  }, { merge: true });
+  await safeWrite(async () => {
+    await db.collection('tallies').doc(key).set({
+      personId, drinkId,
+      count: firebase.firestore.FieldValue.increment(-1)
+    }, { merge: true });
+  });
 }
 
 async function resetAll(){
   if (!checkPassword('alle Striche zurückzusetzen')) return;
   if (!confirm('Wirklich ALLE Striche für ALLE Personen zurücksetzen? Personen und Getränke bleiben erhalten.')) return;
-  const batch = db.batch();
-  Object.keys(tallies).forEach(key => batch.delete(db.collection('tallies').doc(key)));
-  await batch.commit();
+  await safeWrite(async () => {
+    const batch = db.batch();
+    Object.keys(tallies).forEach(key => batch.delete(db.collection('tallies').doc(key)));
+    await batch.commit();
+  });
 }
 
 async function settlePerson(personId){
@@ -415,17 +502,19 @@ async function settlePerson(personId){
   }
   if (!checkPassword('„' + p.name + '" abzurechnen')) return;
   if (!confirm('„' + p.name + '" jetzt für ' + formatEuro(total) + ' abrechnen? Alle Striche dieser Person werden zurückgesetzt.')) return;
-  const batch = db.batch();
-  Object.keys(tallies).forEach(key => {
-    if (tallies[key].personId === personId) batch.delete(db.collection('tallies').doc(key));
+  await safeWrite(async () => {
+    const batch = db.batch();
+    Object.keys(tallies).forEach(key => {
+      if (tallies[key].personId === personId) batch.delete(db.collection('tallies').doc(key));
+    });
+    batch.set(db.collection('transactions').doc(), {
+      type: 'einnahme',
+      note: p.name,
+      amount: total,
+      createdAt: Date.now()
+    });
+    await batch.commit();
   });
-  batch.set(db.collection('transactions').doc(), {
-    type: 'einnahme',
-    note: p.name,
-    amount: total,
-    createdAt: Date.now()
-  });
-  await batch.commit();
 }
 
 async function addTransaction(){
@@ -436,17 +525,21 @@ async function addTransaction(){
   const note = noteInput.value.trim();
   const amount = parseFloat(amountInput.value);
   if (!note || isNaN(amount) || amount <= 0) return;
-  await db.collection('transactions').add({ type, note, amount, createdAt: Date.now() });
-  noteInput.value = '';
-  amountInput.value = '';
-  noteInput.focus();
+  await safeWrite(async () => {
+    await db.collection('transactions').add({ type, note, amount, createdAt: Date.now() });
+    noteInput.value = '';
+    amountInput.value = '';
+    noteInput.focus();
+  });
 }
 
 async function deleteTransaction(id){
   const tx = transactions.find(t => t.id === id);
   if (!tx) return;
   if (!confirm('Buchung „' + tx.note + '" (' + formatEuro(tx.amount) + ') wirklich löschen?')) return;
-  await db.collection('transactions').doc(id).delete();
+  await safeWrite(async () => {
+    await db.collection('transactions').doc(id).delete();
+  });
 }
 
 function renderKasse(){
@@ -506,6 +599,15 @@ function personTotal(personId){
 function render(){
   const head = document.getElementById('board-head');
   const body = document.getElementById('board-body');
+  const chips = document.getElementById('drink-chips');
+
+  chips.innerHTML = drinks.map(d => `
+    <div class="drink-chip">
+      <span>${escapeHtml(d.name)}</span>
+      <span class="chip-price">${formatEuro(d.price)}</span>
+      <button class="chip-del" data-del-drink="${d.id}" aria-label="${escapeHtml(d.name)} löschen">×</button>
+    </div>
+  `).join('');
 
   head.innerHTML = '<th class="corner">Person</th>' +
     drinks.map(d => `
@@ -533,7 +635,7 @@ function render(){
         ${drinks.map(d => {
           const count = getCount(p.id, d.id);
           return `
-          <td class="cell" tabindex="0" role="button" data-inc="${p.id}|${d.id}" aria-label="${escapeHtml(d.name)} für ${escapeHtml(p.name)} hinzufügen">
+          <td class="cell" tabindex="0" role="button" data-inc="${p.id}|${d.id}" data-label="${escapeHtml(d.name)}" aria-label="${escapeHtml(d.name)} für ${escapeHtml(p.name)} hinzufügen">
             <div class="cell-inner">
               ${renderTallyMarks(count)}
               <div class="cell-meta">
@@ -543,7 +645,7 @@ function render(){
             </div>
           </td>`;
         }).join('')}
-        <td class="total-cell">
+        <td class="total-cell" data-label="Summe">
           <div class="row">
             <span>${formatEuro(personTotal(p.id))}</span>
             <button class="settle-btn" data-settle="${p.id}">abrechnen</button>
@@ -614,6 +716,11 @@ document.getElementById('board-body').addEventListener('keydown', e => {
 });
 
 document.getElementById('board-head').addEventListener('click', e => {
+  const delDrink = e.target.closest('[data-del-drink]');
+  if (delDrink) deleteDrink(delDrink.dataset.delDrink);
+});
+
+document.getElementById('drink-chips').addEventListener('click', e => {
   const delDrink = e.target.closest('[data-del-drink]');
   if (delDrink) deleteDrink(delDrink.dataset.delDrink);
 });
